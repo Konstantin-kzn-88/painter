@@ -22,12 +22,12 @@ class WorkerSignals(QObject):
 class Worker(QRunnable):
     def __init__(self, iterations=2):
         super().__init__()
-        self.signals = WorkerSignals()  # Create an instance of our signals class.
+        self.signals = WorkerSignals()
         self.iterations = iterations
 
     def run(self):
         try:
-            time.sleep(5)
+            time.sleep(2)
             n= 4
             v = 5
 

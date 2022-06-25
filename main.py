@@ -16,7 +16,7 @@ import os
 import sys
 from pathlib import Path
 
-from PySide2.QtCore import QObject, QRunnable, QThreadPool, QTimer, Signal
+from PySide2.QtCore import QModelIndex
 from PySide2.QtWidgets import (
     QApplication,
     QLabel,
@@ -33,6 +33,7 @@ from PySide2.QtWidgets import (
     QGraphicsView,
     QLineEdit,
     QComboBox,
+    QTableWidget,
 )
 
 from PySide2.QtGui import QIcon, QPixmap, QFont
@@ -45,7 +46,6 @@ class Painter(QMainWindow):
         super().__init__()
         self.set_ico()
         self.init_UI()
-
 
     def set_ico(self):
         """
@@ -60,6 +60,12 @@ class Painter(QMainWindow):
         self.area_ico = QIcon(path_ico + '/ico/area.png')
         self.area_ico = QIcon(path_ico + '/ico/area.png')
         self.color_ico = QIcon(path_ico + '/ico/color_select.png')
+        self.plus_ico = QIcon(path_ico + '/ico/plus.png')
+        self.minus_ico = QIcon(path_ico + '/ico/minus.png')
+        self.book_ico = QIcon(path_ico + '/ico/book.png')
+        self.object_ico = QIcon(path_ico + '/ico/object.png')
+        self.dbl_minus_ico = QIcon(path_ico + '/ico/double_minus.png')
+        self.save_ico = QIcon(path_ico + '/ico/save.png')
 
     def init_UI(self):
         self.setGeometry(500, 500, 1000, 750)
@@ -68,7 +74,10 @@ class Painter(QMainWindow):
         central_widget = QWidget()
         # Основная сетка компановки
         grid = QGridLayout(self)
+        grid.setColumnStretch(0, 1)
+        grid.setColumnStretch(1, 7)
         grid.setRowStretch(0, 7)
+        grid.setRowStretch(1, 1)
 
         # ___________1_START________________
         # Генплан
@@ -99,14 +108,6 @@ class Painter(QMainWindow):
         self.scale_plan.setPlaceholderText("Масштаб")
         self.scale_plan.setToolTip("В одном пикселе метров")
         self.scale_plan.setReadOnly(True)
-        # Упаковываем все в QGroupBox Рамка №1
-        layout_scale = QFormLayout(self)
-        GB_scale = QGroupBox('Масштаб')
-        GB_scale.setStyleSheet("QGroupBox { font-weight : bold; }")
-        layout_scale.addRow("", self.scale_plan)
-        GB_scale.setLayout(layout_scale)
-
-        # Рамка №2. Действия (масштаб, расстояние, площадь)  (то что будет в рамке 2)
         self.type_act = QComboBox()  # тип действия
         self.type_act.addItems(["Масштаб", "Расстояние", "Площадь"])
         self.type_act.setItemIcon(0, self.scale_ico)
@@ -118,15 +119,16 @@ class Painter(QMainWindow):
         # self.draw_type_act.clicked.connect(self.change_draw_type_act)
         self.draw_type_act.setCheckable(True)
         self.draw_type_act.setChecked(False)
+        # Упаковываем все в QGroupBox Рамка №1
+        layout_scale = QFormLayout(self)
+        GB_scale = QGroupBox('Масштаб')
+        GB_scale.setStyleSheet("QGroupBox { font-weight : bold; }")
+        layout_scale.addRow("", self.scale_plan)
+        layout_scale.addRow("", self.type_act)
+        layout_scale.addRow("", self.draw_type_act)
+        layout_scale.addRow("", self.result_type_act)
+        GB_scale.setLayout(layout_scale)
 
-        # Упаковываем все в QGroupBox Рамка №2
-        layout_act = QFormLayout(self)
-        GB_act = QGroupBox('Действие')
-        GB_act.setStyleSheet("QGroupBox { font-weight : bold; }")
-        layout_act.addRow("", self.type_act)
-        layout_act.addRow("", self.draw_type_act)
-        layout_act.addRow("", self.result_type_act)
-        GB_act.setLayout(layout_act)
 
         # Рамка №3. Главной вкладки. Ситуацилнные планы. (то что будет в рамке 3)
         self.plan_list = QComboBox()  # ген.планы объекта
@@ -150,32 +152,32 @@ class Painter(QMainWindow):
         # ___________3_START________________
         # Рамка №1. Владки зон поражения. (то что будет в рамке 1)
         # color_zone набор кнопок для зон 6 возможных зон поражения
-        self.color_zone1_btn = QPushButton("Зона 1")
+        self.color_zone1_btn = QPushButton("R1")
         self.color_zone1_btn.setIcon(self.color_ico)
         self.color_zone1_btn.setToolTip("Цвет зоны 1")
         self.color_zone1_btn.setStyleSheet("background-color: red")
         # self.color_zone1_btn.clicked.connect(self.select_color)
-        self.color_zone2_btn = QPushButton("Зона 2")
+        self.color_zone2_btn = QPushButton("R2")
         self.color_zone2_btn.setIcon(self.color_ico)
         self.color_zone2_btn.setToolTip("Цвет зоны 2")
         self.color_zone2_btn.setStyleSheet("background-color: blue")
         # self.color_zone2_btn.clicked.connect(self.select_color)
-        self.color_zone3_btn = QPushButton("Зона 3")
+        self.color_zone3_btn = QPushButton("R3")
         self.color_zone3_btn.setIcon(self.color_ico)
         self.color_zone3_btn.setToolTip("Цвет зоны 3")
         self.color_zone3_btn.setStyleSheet("background-color: orange")
         # self.color_zone3_btn.clicked.connect(self.select_color)
-        self.color_zone4_btn = QPushButton("Зона 4")
+        self.color_zone4_btn = QPushButton("R4")
         self.color_zone4_btn.setIcon(self.color_ico)
         self.color_zone4_btn.setToolTip("Цвет зоны 4")
         self.color_zone4_btn.setStyleSheet("background-color: green")
         # self.color_zone4_btn.clicked.connect(self.select_color)
-        self.color_zone5_btn = QPushButton("Зона 5")
+        self.color_zone5_btn = QPushButton("R5")
         self.color_zone5_btn.setIcon(self.color_ico)
         self.color_zone5_btn.setToolTip("Цвет зоны 5")
         self.color_zone5_btn.setStyleSheet("background-color: magenta")
         # self.color_zone5_btn.clicked.connect(self.select_color)
-        self.color_zone6_btn = QPushButton("Зона 6")
+        self.color_zone6_btn = QPushButton("R6")
         self.color_zone6_btn.setIcon(self.color_ico)
         self.color_zone6_btn.setToolTip("Цвет зоны 6")
         self.color_zone6_btn.setStyleSheet("background-color: yellow")
@@ -185,28 +187,95 @@ class Painter(QMainWindow):
         layout_zone = QFormLayout(self)
         GB_zone = QGroupBox('Выбор цвета')
         GB_zone.setStyleSheet("QGroupBox { font-weight : bold; }")
-        hbox_zone_1_2 = QHBoxLayout()
-        hbox_zone_1_2.addWidget(self.color_zone1_btn)
-        hbox_zone_1_2.addWidget(self.color_zone2_btn)
-        layout_zone.addRow("", hbox_zone_1_2)
-        hbox_zone_3_4 = QHBoxLayout()
-        hbox_zone_3_4.addWidget(self.color_zone3_btn)
-        hbox_zone_3_4.addWidget(self.color_zone4_btn)
-        layout_zone.addRow("", hbox_zone_3_4)
-        hbox_zone_5_6 = QHBoxLayout()
-        hbox_zone_5_6.addWidget(self.color_zone5_btn)
-        hbox_zone_5_6.addWidget(self.color_zone6_btn)
-        layout_zone.addRow("", hbox_zone_5_6)
+        hbox_zone_1_3 = QHBoxLayout()
+        hbox_zone_1_3.addWidget(self.color_zone1_btn)
+        hbox_zone_1_3.addWidget(self.color_zone2_btn)
+        hbox_zone_1_3.addWidget(self.color_zone3_btn)
+        layout_zone.addRow("", hbox_zone_1_3)
+        hbox_zone_2_6 = QHBoxLayout()
+        hbox_zone_2_6.addWidget(self.color_zone4_btn)
+        hbox_zone_2_6.addWidget(self.color_zone5_btn)
+        hbox_zone_2_6.addWidget(self.color_zone6_btn)
+        layout_zone.addRow("", hbox_zone_2_6)
         GB_zone.setLayout(layout_zone)
         # ___________3_END________________
+
+        # ___________4_START________________
+        # Рамка
+        layout_data = QFormLayout(self)
+        GB_data = QGroupBox('Данные об объекте')
+        GB_data.setStyleSheet("QGroupBox { font-weight : bold; }")
+
+        # таблица
+        data_grid = QGridLayout(self)
+        data_grid.setColumnStretch(0, 15)
+        data_grid.setColumnStretch(1, 1)
+
+        self.table_data = QTableWidget(0, 33)
+        # self.table_data_view()  # фукция отрисовки заголовков таблицы
+        # self.table_data.clicked[QModelIndex].connect(self.get_index_in_table)
+        # кнопки управления
+        layout_control = QFormLayout(self)
+        GB_control = QGroupBox('Действия объекта')
+
+        self.add_row = QPushButton("Добавить объект")
+        self.add_row.setStyleSheet("text-align: left;")
+        self.add_row.setIcon(self.plus_ico)
+        self.add_row.setToolTip("Добавить строку в таблицу")
+        # self.add_row.clicked.connect(self.add_in_table)
+
+        self.del_row = QPushButton("Удалить объект")
+        self.del_row.setStyleSheet("text-align: left;")
+        self.del_row.setIcon(self.minus_ico)
+        self.del_row.setToolTip("Удалить строку из таблицу")
+        # self.del_row.clicked.connect(self.del_in_table)
+
+        self.draw_obj = QPushButton("Координаты")
+        self.draw_obj.setStyleSheet("text-align: left;")
+        self.draw_obj.setToolTip('Указать координаты выбранного в таблице объекта')
+        self.draw_obj.setIcon(self.object_ico)
+        # self.draw_obj.clicked.connect(self.change_draw_obj)
+        self.draw_obj.setCheckable(True)
+        self.draw_obj.setChecked(False)
+
+        self.del_last_coordinate = QPushButton("")
+        self.del_last_coordinate.setToolTip('Удалить последнюю координату')
+        self.del_last_coordinate.setIcon(self.minus_ico)
+        # self.del_last_coordinate.clicked.connect(self.delete_last_coordinate)
+
+        self.del_all_coordinate = QPushButton("")
+        self.del_all_coordinate.setToolTip('Удалить все координаты')
+        self.del_all_coordinate.setIcon(self.dbl_minus_ico)
+        # self.del_all_coordinate.clicked.connect(self.delete_all_coordinates)
+
+        self.save_table = QPushButton("Сохранить объекты")
+        self.save_table.setToolTip('Сохранить объекты в базу данных')
+        self.save_table.setIcon(self.save_ico)
+        # self.save_table.clicked.connect(self.save_table_in_db)
+
+        layout_control.addRow("", self.add_row)
+        layout_control.addRow("", self.del_row)
+        layout_control.addRow("", self.draw_obj)
+        hbox_coordinate = QHBoxLayout()
+        hbox_coordinate.addWidget(self.del_last_coordinate)
+        hbox_coordinate.addWidget(self.del_all_coordinate)
+        layout_control.addRow("", hbox_coordinate)
+        layout_control.addRow("", self.save_table)
+        GB_control.setLayout(layout_control)
+
+        data_grid.addWidget(self.table_data, 0, 0, 1, 1)
+        data_grid.addWidget(GB_control, 0, 1, 1, 1)
+        layout_data.addRow("", data_grid)
+        GB_data.setLayout(layout_data)
+        # ___________4_END________________
 
         # ___________N_START________________
         # Разместим основные QGroupBox на сетке
         grid.addWidget(GB_picture, 0, 0, 1, 0)
-        grid.addWidget(GB_scale, 1, 0, 1, 1)
-        grid.addWidget(GB_act, 2, 0, 1, 1)
-        grid.addWidget(GB_plan, 3, 0, 1, 1)
-        grid.addWidget(GB_zone, 1, 1, -1, -1)
+        grid.addWidget(GB_scale, 1, 0, -1, 1)
+        grid.addWidget(GB_plan, 2, 2, 1, 1)
+        grid.addWidget(GB_zone, 1, 2, 1, 1)
+        grid.addWidget(GB_data, 1, 1, -1, 1)
         # Установить отсновну сетку как слой
         central_widget.setLayout(grid)
         # Установить центральный виджет

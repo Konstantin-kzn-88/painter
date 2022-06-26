@@ -34,9 +34,12 @@ from PySide2.QtWidgets import (
     QLineEdit,
     QComboBox,
     QTableWidget,
+    QTableWidgetItem,
+    QStyleFactory,
+    QHeaderView,
 )
 
-from PySide2.QtGui import QIcon, QPixmap, QFont
+from PySide2.QtGui import QIcon, QPixmap, QFont, QColor
 
 
 class Painter(QMainWindow):
@@ -64,8 +67,10 @@ class Painter(QMainWindow):
         self.minus_ico = QIcon(path_ico + '/ico/minus.png')
         self.book_ico = QIcon(path_ico + '/ico/book.png')
         self.object_ico = QIcon(path_ico + '/ico/object.png')
-        self.dbl_minus_ico = QIcon(path_ico + '/ico/double_minus.png')
+        self.clear = QIcon(path_ico + '/ico/clear.png')
         self.save_ico = QIcon(path_ico + '/ico/save.png')
+        self.del_one = QIcon(path_ico + '/ico/del_one.png')
+        self.copy = QIcon(path_ico + '/ico/copy.png')
 
     def init_UI(self):
         self.setGeometry(500, 500, 1000, 750)
@@ -121,14 +126,13 @@ class Painter(QMainWindow):
         self.draw_type_act.setChecked(False)
         # Упаковываем все в QGroupBox Рамка №1
         layout_scale = QFormLayout(self)
-        GB_scale = QGroupBox('Масштаб')
+        GB_scale = QGroupBox('Интрументы')
         GB_scale.setStyleSheet("QGroupBox { font-weight : bold; }")
         layout_scale.addRow("", self.scale_plan)
         layout_scale.addRow("", self.type_act)
         layout_scale.addRow("", self.draw_type_act)
         layout_scale.addRow("", self.result_type_act)
         GB_scale.setLayout(layout_scale)
-
 
         # Рамка №3. Главной вкладки. Ситуацилнные планы. (то что будет в рамке 3)
         self.plan_list = QComboBox()  # ген.планы объекта
@@ -203,7 +207,7 @@ class Painter(QMainWindow):
         # ___________4_START________________
         # Рамка
         layout_data = QFormLayout(self)
-        GB_data = QGroupBox('Данные об объекте')
+        GB_data = QGroupBox('Данные об объектах')
         GB_data.setStyleSheet("QGroupBox { font-weight : bold; }")
 
         # таблица
@@ -211,20 +215,24 @@ class Painter(QMainWindow):
         data_grid.setColumnStretch(0, 15)
         data_grid.setColumnStretch(1, 1)
 
-        self.table_data = QTableWidget(0, 33)
-        # self.table_data_view()  # фукция отрисовки заголовков таблицы
+        self.table_data = QTableWidget(0, 9)
+        self.table_data_view()  # фукция отрисовки заголовков таблицы
         # self.table_data.clicked[QModelIndex].connect(self.get_index_in_table)
         # кнопки управления
         layout_control = QFormLayout(self)
         GB_control = QGroupBox('Действия объекта')
 
-        self.add_row = QPushButton("Добавить объект")
+        self.add_row = QPushButton("Добавить")
         self.add_row.setStyleSheet("text-align: left;")
         self.add_row.setIcon(self.plus_ico)
         self.add_row.setToolTip("Добавить строку в таблицу")
         # self.add_row.clicked.connect(self.add_in_table)
+        self.add_row_copy = QPushButton("")
+        self.add_row_copy.setIcon(self.copy)
+        self.add_row_copy.setToolTip("Скопировать последнюю строку")
+        # self.add_row.clicked.connect(self.add_in_table)
 
-        self.del_row = QPushButton("Удалить объект")
+        self.del_row = QPushButton("Удалить")
         self.del_row.setStyleSheet("text-align: left;")
         self.del_row.setIcon(self.minus_ico)
         self.del_row.setToolTip("Удалить строку из таблицу")
@@ -240,20 +248,23 @@ class Painter(QMainWindow):
 
         self.del_last_coordinate = QPushButton("")
         self.del_last_coordinate.setToolTip('Удалить последнюю координату')
-        self.del_last_coordinate.setIcon(self.minus_ico)
+        self.del_last_coordinate.setIcon(self.del_one)
         # self.del_last_coordinate.clicked.connect(self.delete_last_coordinate)
 
         self.del_all_coordinate = QPushButton("")
         self.del_all_coordinate.setToolTip('Удалить все координаты')
-        self.del_all_coordinate.setIcon(self.dbl_minus_ico)
+        self.del_all_coordinate.setIcon(self.clear)
         # self.del_all_coordinate.clicked.connect(self.delete_all_coordinates)
 
-        self.save_table = QPushButton("Сохранить объекты")
+        self.save_table = QPushButton("Сохранить")
         self.save_table.setToolTip('Сохранить объекты в базу данных')
         self.save_table.setIcon(self.save_ico)
         # self.save_table.clicked.connect(self.save_table_in_db)
 
-        layout_control.addRow("", self.add_row)
+        hbox_add = QHBoxLayout()
+        hbox_add.addWidget(self.add_row)
+        hbox_add.addWidget(self.add_row_copy)
+        layout_control.addRow("", hbox_add)
         layout_control.addRow("", self.del_row)
         layout_control.addRow("", self.draw_obj)
         hbox_coordinate = QHBoxLayout()
@@ -283,8 +294,25 @@ class Painter(QMainWindow):
         # ___________N_START________________
         self.show()
 
+    def table_data_view(self):
+        """
+        Оформление таблицы для введения данных self.table_data
+        """
+
+        header_list = ['Название объекта', 'R1, м', 'R2, м',
+                       'R3, м', 'R4, м',
+                       'R5, м', 'R6, м', 'Тип', 'Координаты']
+
+        for header in header_list:
+            item = QTableWidgetItem(header)
+            item.setBackground(QColor(0, 225, 0))
+            self.table_data.setHorizontalHeaderItem(header_list.index(header), item)
+        # масштабирование под контент
+        self.table_data.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.table_data.horizontalHeader().setSectionResizeMode(8, QHeaderView.ResizeToContents)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setStyle(QStyleFactory.create('Fusion'))
     window = Painter()
     app.exec_()

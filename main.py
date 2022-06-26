@@ -37,6 +37,8 @@ from PySide2.QtWidgets import (
     QTableWidgetItem,
     QStyleFactory,
     QHeaderView,
+    QMenu,
+    QAction,
 )
 
 from PySide2.QtGui import QIcon, QPixmap, QFont, QColor
@@ -67,10 +69,15 @@ class Painter(QMainWindow):
         self.minus_ico = QIcon(path_ico + '/ico/minus.png')
         self.book_ico = QIcon(path_ico + '/ico/book.png')
         self.object_ico = QIcon(path_ico + '/ico/object.png')
-        self.clear = QIcon(path_ico + '/ico/clear.png')
+        self.clear_ico = QIcon(path_ico + '/ico/clear.png')
         self.save_ico = QIcon(path_ico + '/ico/save.png')
-        self.del_one = QIcon(path_ico + '/ico/del_one.png')
-        self.copy = QIcon(path_ico + '/ico/copy.png')
+        self.del_one_ico = QIcon(path_ico + '/ico/del_one.png')
+        self.copy_ico = QIcon(path_ico + '/ico/copy.png')
+        self.ok_ico = QIcon(path_ico + '/ico/ok.png')
+        self.db_ico = QIcon(path_ico + '/ico/data_base.png')
+        self.replace_ico = QIcon(path_ico + '/ico/replace.png')
+        self.del_ico = QIcon(path_ico + '/ico/del.png')
+        self.plan_ico = QIcon(path_ico + '/ico/plan.png')
 
     def init_UI(self):
         self.setGeometry(500, 500, 1000, 750)
@@ -228,7 +235,7 @@ class Painter(QMainWindow):
         self.add_row.setToolTip("Добавить строку в таблицу")
         # self.add_row.clicked.connect(self.add_in_table)
         self.add_row_copy = QPushButton("")
-        self.add_row_copy.setIcon(self.copy)
+        self.add_row_copy.setIcon(self.copy_ico)
         self.add_row_copy.setToolTip("Скопировать последнюю строку")
         # self.add_row.clicked.connect(self.add_in_table)
 
@@ -248,12 +255,12 @@ class Painter(QMainWindow):
 
         self.del_last_coordinate = QPushButton("")
         self.del_last_coordinate.setToolTip('Удалить последнюю координату')
-        self.del_last_coordinate.setIcon(self.del_one)
+        self.del_last_coordinate.setIcon(self.del_one_ico)
         # self.del_last_coordinate.clicked.connect(self.delete_last_coordinate)
 
         self.del_all_coordinate = QPushButton("")
         self.del_all_coordinate.setToolTip('Удалить все координаты')
-        self.del_all_coordinate.setIcon(self.clear)
+        self.del_all_coordinate.setIcon(self.clear_ico)
         # self.del_all_coordinate.clicked.connect(self.delete_all_coordinates)
 
         self.save_table = QPushButton("Сохранить")
@@ -279,6 +286,52 @@ class Painter(QMainWindow):
         layout_data.addRow("", data_grid)
         GB_data.setLayout(layout_data)
         # ___________4_END________________
+
+        # ___________5_START________________
+        # Меню (тулбар)
+        # База данных (меню)
+        db_menu = QMenu('База данных', self)
+        db_menu.setIcon(self.db_ico)
+        db_create = QAction(self.ok_ico, 'Создать', self)
+        db_create.setStatusTip('Создать новую базу данных')
+        # db_create.triggered.connect(self.db_create)
+        db_menu.addAction(db_create)
+        db_connect = QAction(self.db_ico, 'Подключиться', self)
+        db_connect.setStatusTip('Подключиться к существующей базе данных')
+        # db_connect.triggered.connect(self.db_connect)
+        db_menu.addAction(db_connect)
+        # Генплан (меню)
+        plan_menu = QMenu('Ген.план', self)
+        plan_menu.setIcon(self.plan_ico)
+        plan_add = QAction(self.ok_ico, 'Добавить', self)
+        plan_add.setStatusTip('Добавить новый план объекта')
+        # plan_add.triggered.connect(self.plan_add_func)
+        plan_menu.addAction(plan_add)
+        plan_replace = QAction(self.replace_ico, 'Заменить', self)
+        plan_replace.setStatusTip('Заменить план объекта')
+        # plan_replace.triggered.connect(self.plan_replace)
+        plan_menu.addAction(plan_replace)
+        plan_save = QAction(self.save_ico, 'Coхранить', self)
+        plan_save.setStatusTip('Сохранить текущее изображение плана объекта как файл')
+        # plan_save.triggered.connect(self.plan_save)
+        plan_menu.addAction(plan_save)
+        plan_clear = QAction(self.clear_ico, 'Очистить', self)
+        plan_clear.setStatusTip('Очистить план объекта')
+        # plan_clear.triggered.connect(self.plan_clear)
+        plan_menu.addAction(plan_clear)
+        plan_del = QAction(self.del_ico, 'Удалить план с объектами', self)
+        plan_del.setStatusTip('Удалить изображение плана объекта')
+        # plan_del.triggered.connect(self.plan_del)
+        plan_menu.addAction(plan_del)
+
+        # Меню приложения (верхняя плашка)
+        menubar = self.menuBar()
+        file_menu = menubar.addMenu('Файл')
+        file_menu.addMenu(db_menu)
+        plans_menu = menubar.addMenu('План')
+        plans_menu.addMenu(plan_menu)
+
+        # ___________5_END________________
 
         # ___________N_START________________
         # Разместим основные QGroupBox на сетке
@@ -310,6 +363,7 @@ class Painter(QMainWindow):
         # масштабирование под контент
         self.table_data.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.table_data.horizontalHeader().setSectionResizeMode(8, QHeaderView.ResizeToContents)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

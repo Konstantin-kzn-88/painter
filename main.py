@@ -14,9 +14,10 @@
 
 import os
 import sys
+import time
 from pathlib import Path
 
-from PySide2.QtCore import QModelIndex
+from PySide2.QtCore import QRectF, Qt
 from PySide2.QtWidgets import (
     QApplication,
     QLabel,
@@ -39,9 +40,14 @@ from PySide2.QtWidgets import (
     QHeaderView,
     QMenu,
     QAction,
+    QMessageBox,
 )
 
-from PySide2.QtGui import QIcon, QPixmap, QFont, QColor
+from PySide2.QtGui import QImage, QIcon, QPixmap, QFont, QColor, QPainter
+
+# Классы проекта
+# db
+from data_base import class_db
 
 
 class Painter(QMainWindow):
@@ -52,11 +58,31 @@ class Painter(QMainWindow):
         self.set_ico()
         self.init_UI()
 
+        # Атрибуты класса
+        # а. Переменные отвечающие за подключение БД
+        self.db_name = ''
+        self.db_path = ''
+
+        # б. Переменная ген.плана
+        self.scale = 1
+
+        # в. Переменная отвечающая за индекс строки в self.table_data
+        self.row_ind_in_data_grid = None
+
+        # г. Список для запоминания координат для определения масштаба
+        # по следующему алгоритму:
+        # при каждом нажатии на ген.план запоминает координаты клика (х,у)
+        # затем при len(self.point_for_scale) == 4, запрашивает у пользователя
+        # QInputDialog число, чему этом отрезок равен в метрах и вычисляется масштаб
+        # self.data_draw_point становится [].
+
+        self.point_for_scale = []
+
     def set_ico(self):
         """
         Функция установки иконок в приложение
         """
-        path_ico = str(Path(os.getcwd()).parents[0])
+        path_ico = str(Path(os.getcwd()))
         self.main_ico = QIcon(path_ico + '/ico/painter.png')
         self.setWindowIcon(self.main_ico)
 
@@ -145,7 +171,7 @@ class Painter(QMainWindow):
         self.plan_list = QComboBox()  # ген.планы объекта
         self.plan_list.addItems(["--Нет ген.планов--"])
         self.plan_list.setToolTip("""Ген.планы объекта""")
-        # self.plan_list.activated[str].connect(self.plan_list_select)
+        self.plan_list.activated[str].connect(self.plan_list_select)
         self.data_base_info_connect = QLabel()  # информация о подключении базы данных
         self.data_base_info_connect.setText('Нет подключения к базе данных...')
         self.data_base_info_connect.setFont(QFont("Times", 10, QFont.Bold))
@@ -294,33 +320,33 @@ class Painter(QMainWindow):
         db_menu.setIcon(self.db_ico)
         db_create = QAction(self.ok_ico, 'Создать', self)
         db_create.setStatusTip('Создать новую базу данных')
-        # db_create.triggered.connect(self.db_create)
+        db_create.triggered.connect(self.database_create)
         db_menu.addAction(db_create)
         db_connect = QAction(self.db_ico, 'Подключиться', self)
         db_connect.setStatusTip('Подключиться к существующей базе данных')
-        # db_connect.triggered.connect(self.db_connect)
+        db_connect.triggered.connect(self.database_connect)
         db_menu.addAction(db_connect)
         # Генплан (меню)
         plan_menu = QMenu('Ген.план', self)
         plan_menu.setIcon(self.plan_ico)
         plan_add = QAction(self.ok_ico, 'Добавить', self)
         plan_add.setStatusTip('Добавить новый план объекта')
-        # plan_add.triggered.connect(self.plan_add_func)
+        plan_add.triggered.connect(self.plan_add)
         plan_menu.addAction(plan_add)
         plan_replace = QAction(self.replace_ico, 'Заменить', self)
         plan_replace.setStatusTip('Заменить план объекта')
-        # plan_replace.triggered.connect(self.plan_replace)
+        plan_replace.triggered.connect(self.plan_replace)
         plan_menu.addAction(plan_replace)
         plan_save = QAction(self.save_ico, 'Coхранить', self)
         plan_save.setStatusTip('Сохранить текущее изображение плана объекта как файл')
-        # plan_save.triggered.connect(self.plan_save)
+        plan_save.triggered.connect(self.plan_save)
         plan_menu.addAction(plan_save)
         plan_clear = QAction(self.clear_ico, 'Очистить', self)
         plan_clear.setStatusTip('Очистить план объекта')
         # plan_clear.triggered.connect(self.plan_clear)
         plan_menu.addAction(plan_clear)
         plan_del = QAction(self.del_ico, 'Удалить план с объектами', self)
-        plan_del.setStatusTip('Удалить изображение плана объекта')
+        plan_del.setStatusTip('Удалить изображение плана c объекта')
         # plan_del.triggered.connect(self.plan_del)
         plan_menu.addAction(plan_del)
 
@@ -360,9 +386,146 @@ class Painter(QMainWindow):
             item = QTableWidgetItem(header)
             item.setBackground(QColor(0, 225, 0))
             self.table_data.setHorizontalHeaderItem(header_list.index(header), item)
+            if header == 'Тип':
+                item.setToolTip(
+                    '''Тип оборудования:
+                    0 - линейный
+                    1 - площадной'''
+                )
         # масштабирование под контент
         self.table_data.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.table_data.horizontalHeader().setSectionResizeMode(8, QHeaderView.ResizeToContents)
+
+    # ___________Функции_БД_START________________
+    def database_create(self):
+        self.db_name, self.db_path = class_db.Data_base('', '').db_create()
+        self.connect_info(self.db_name, self.db_path)
+
+    def database_connect(self):
+        self.db_name, self.db_path = class_db.Data_base(self.db_name, self.db_path).db_connect()
+        self.connect_info(self.db_name, self.db_path)
+        class_db.Data_base(self.db_name, self.db_path).plan_list_update(self.plan_list)
+        # self.del_all_item()  # очистить ген.планы от item
+
+    def connect_info(self, name: str, path: str):
+        """
+        Проверка наличия данных о подключения БД
+        Путь и имя базы данных не равны пустым строкам
+        """
+        if path != '' and name != '':
+            self.data_base_info_connect.setText(f'База  данных {self.db_name}.db подключена!')
+            self.data_base_info_connect.setStyleSheet('color: green')
+        else:
+            self.data_base_info_connect.setText('Нет подключения к базе данных...')
+            self.data_base_info_connect.setStyleSheet('color: red')
+
+    # ___________Функции_БД_END________________
+
+    # ___________Функции_работы_с_ген.планом_START________________
+    # Функции работы с ген.планом
+    def plan_add(self):
+        class_db.Data_base(self.db_name, self.db_path).plan_add()
+        class_db.Data_base(self.db_name, self.db_path).plan_list_update(self.plan_list)
+
+    def plan_save(self):
+        text = str(int(time.time()))
+        # self.del_all_item()
+        self.scene.clearSelection()
+        self.scene.setSceneRect(self.scene.itemsBoundingRect())
+        image = QImage(self.scene.sceneRect().size().toSize(), QImage.Format_ARGB32)
+        image.fill(Qt.transparent)
+        painter = QPainter(image)
+        self.scene.render(painter)
+        image.save((f"{self.db_path}/{text}.jpg"), "JPG")
+        painter.end()
+
+    def plan_replace(self):
+        """Функция замены ген.плана на сцене"""
+        class_db.Data_base(self.db_name, self.db_path).plan_replace(self.plan_list.currentText())
+        class_db.Data_base(self.db_name, self.db_path).plan_list_update(self.plan_list)
+        self.plan_list_select(self.plan_list.currentText())
+
+    def plan_list_select(self, text: str) -> None:
+        """
+        Функция выбора ген.плана из списка QComboBox (self.plan_list)
+        :@param text: текст из QComboBox (self.plan_list) с наименованием плана
+
+        :@return: None
+        """
+
+        self.scale_plan.setText('')
+        self.result_type_act.setText('')
+
+        # 1. Ген.план
+        data, image_data = class_db.Data_base(self.db_name, self.db_path).get_plan_in_db(text)
+        if image_data is not None:
+            self.scene.clear()
+            qimg = QImage.fromData(image_data)
+            self.pixmap = QPixmap.fromImage(qimg)
+            self.scene.addPixmap(self.pixmap)
+            self.scene.setSceneRect(QRectF(self.pixmap.rect()))
+
+        # 2. Данные для таблицы
+        # 2.1. Удалить данные из таблицы
+        self.table_data.setRowCount(0)
+        if len(data) != 0:
+            # 3.1. Установить масштаб
+            data = eval(data)
+            self.scale_plan.setText(data.pop())  # крайний элемент списка всегда масштаб
+            # 3.2. Заполнить таблицу
+            for obj in data:
+                count_row = self.table_data.rowCount()  # посчитаем количество строк
+                self.table_data.insertRow(count_row)
+                col = 0
+                for item in obj:
+                    # Запишем новые координаты после удаления в таблицу
+                    widget_item_for_table = QTableWidgetItem(item)
+                    self.table_data.setItem(count_row, col,
+                                            widget_item_for_table)
+                    col += 1
+
+    # ___________Функции_с_ген.планом_END________________
+
+    def save_table_in_db(self):
+        """
+        Функция сохранения информации в базу данных из таблицы данных
+        """
+        # Проверки перед сохранением
+        self.is_action_valid()  # проверки
+
+        # Проверки пройдены, можно запоминать данные:
+        class_db.Data_base(self.db_name, self.db_path).save_data_in_db(self.plan_list.currentText(),
+                                                                       self.scale_plan.text(),
+                                                                       self.table_data)
+
+    def is_action_valid(self):
+        """
+        Функция проверки наличия всех данных для корректной работы
+        """
+        # 1. Есть ли база данных
+        if self.db_name == '' and self.db_path == '':
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("Информация")
+            msg.setText("Нет подключения к базе данных!")
+            msg.exec()
+            return
+        # 2. Есть ли генплан
+        if self.plan_list.currentText() == '--Нет ген.планов--':
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("Информация")
+            msg.setText("Нет ген.плана!")
+            msg.exec()
+            return
+        # 3. Есть ли масштаб
+        if self.scale_plan.text() == '':
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("Информация")
+            msg.setText("Не указан масштаб!")
+            msg.exec()
+            return
 
 
 if __name__ == "__main__":

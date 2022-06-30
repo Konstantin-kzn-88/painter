@@ -16,6 +16,7 @@ import os
 import sys
 import time
 from pathlib import Path
+import socket
 
 from PySide2.QtCore import QRectF, Qt
 from PySide2.QtWidgets import (
@@ -41,13 +42,35 @@ from PySide2.QtWidgets import (
     QMenu,
     QAction,
     QMessageBox,
+    QInputDialog,
+    QGraphicsLineItem,
+    QGraphicsItem,
 )
 
-from PySide2.QtGui import QImage, QIcon, QPixmap, QFont, QColor, QPainter
+from PySide2.QtGui import QImage, QIcon, QPixmap, QFont, QColor, QPainter, QPen
 
 # Классы проекта
 # db
 from data_base import class_db
+
+IP = '127.0.0.1'
+
+
+class Object_point(QGraphicsItem):
+    def __init__(self, thickness):
+        super().__init__()
+        self.tag = None
+        self.thickness = thickness
+
+    def boundingRect(self):
+        # print('boundingRect')
+        return QRectF(-(self.thickness), -(self.thickness), self.thickness, self.thickness)
+
+    def paint(self, painter, option, widget):  # рисуем новый квадрат со стороной 10
+        # print('paint')
+        painter.setPen(Qt.red)
+        painter.setBrush(Qt.red)
+        painter.drawRect(-(self.thickness), -(self.thickness), self.thickness, self.thickness)
 
 
 class Painter(QMainWindow):
@@ -131,7 +154,7 @@ class Painter(QMainWindow):
         self.pixmap = QPixmap()
         self.scene.addPixmap(self.pixmap)
         # создаем обработчик клика мыши по сцене
-        # self.scene.mousePressEvent = self.scene_press_event
+        self.scene.mousePressEvent = self.scene_press_event
         # создаем вид который визуализирует сцену
         self.view = QGraphicsView(self.scene, self)
         self.area.setWidget(self.view)
@@ -486,6 +509,100 @@ class Painter(QMainWindow):
 
     # ___________Функции_с_ген.планом_END________________
 
+    def scene_press_event(self, event):
+        # Проверим наличие ген.плана
+        if self.plan_list.currentText() != '--Нет ген.планов--':
+            # Проверим нажатие кнопки draw_type_act,
+            # что мы хотим определить
+            # - масштаб
+            # - измерить растояние
+            # - определить площадь:
+            ...
+            if self.draw_type_act.isChecked():
+                # Отожмем кнопку отрисовки координатов объектов
+                self.draw_obj.setChecked(False)
+                if self.type_act.currentIndex() == 0:
+                    self.point_for_scale.append(str(event.scenePos().x()))  # замеряем координаты клика
+                    self.point_for_scale.append(str(event.scenePos().y()))  # и записываем в data_draw_point
+                    self.draw_all_item(self.point_for_scale)
+                    if len(self.point_for_scale) == 4:  # как только длина data_draw_point == 4
+                        num_int, ok = QInputDialog.getInt(self, "Масштаб", "Сколько метров:")
+                        length = self.server_get_lenght(self.point_for_scale)
+                        if length > 0:
+                            if ok and num_int > 0 and length > 0:
+                                self.point_for_scale.clear()  # очищаем
+                                self.result_type_act.setText(f"В отрезке {num_int} м: {round(length, 2)} пикселей")
+                                self.scale_plan.setText(f"{float(length) / num_int:.3f}")
+                                self.draw_type_act.setChecked(False)
+                                self.del_all_item()
+                            elif ok and num_int <= 0:
+                                self.point_for_scale.clear()  # очищаем data_draw_point
+                                self.draw_type_act.setChecked(False)
+                                self.del_all_item()
+                                self.result_type_act.clear()
+                                self.scale_plan.clear()
+                            elif not ok:
+                                self.point_for_scale.clear()  # очищаем data_draw_point
+                                self.draw_type_act.setChecked(False)
+                                self.del_all_item()
+                                self.result_type_act.clear()
+                                self.scale_plan.clear()
+                        else:
+                            self.point_for_scale.clear()  # очищаем data_draw_point
+                            self.draw_type_act.setChecked(False)
+                            self.del_all_item()
+                            self.result_type_act.clear()
+                            self.scale_plan.clear()
+
+
+
+                    elif len(self.point_for_scale) > 4:
+                        self.point_for_scale.clear()  # очищаем data_draw_point
+                        self.draw_type_act.setChecked(False)
+                        self.del_all_item()
+
+    # ___________Функции_отрисовки_объектов_на_ген.плане_START________________
+    def del_all_item(self):
+        """
+        Удаляет все Item с картинки
+        """
+        # Находим все items на scene и переберем их
+        for item in self.scene.items():  # удалить все линии точки и линии
+            # Имя item
+            name_item = str(item)
+            # print(name_item)
+
+            if name_item.find('QGraphicsLineItem') != -1:
+                self.scene.removeItem(item)
+            elif name_item.find('point') != -1:
+                self.scene.removeItem(item)
+
+    def draw_all_item(self, coordinate):
+        """
+        Рисует все Item на картинке
+        """
+        if coordinate == []:
+            return
+        i = 0
+        k = 0
+        thickness_marker = 5
+        while i < len(coordinate):
+            # thickness_marker = int(self.thickness_line.value() * 5)  # сторона маркера должна быть в 4 раза больше
+
+            name_rings = Object_point(thickness_marker)
+            name_rings.setPos(float(coordinate[i]), float(coordinate[i + 1]))
+            self.scene.addItem(name_rings)
+            i += 2
+        while k < len(coordinate) - 2:
+            line = QGraphicsLineItem(float(coordinate[k]), float(coordinate[k + 1]),
+                                     float(coordinate[k + 2]), float(coordinate[k + 3]))
+            line.setPen(QPen(Qt.blue, thickness_marker // 2))
+            self.scene.addItem(line)
+            k -= 2
+            k += 4
+
+    # ___________Функции_отрисовки_объектов_на_ген.плане_END________________
+
     def save_table_in_db(self):
         """
         Функция сохранения информации в базу данных из таблицы данных
@@ -526,6 +643,36 @@ class Painter(QMainWindow):
             msg.setText("Не указан масштаб!")
             msg.exec()
             return
+
+    def server_get_lenght(self, data: list) -> float:
+        try:
+            server_call = 0
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((IP, 8888))
+            str = f'({server_call}, {data})'
+            sock.send(bytes(str, encoding='utf-8'))
+            res = self.recvall(sock)
+        except ConnectionRefusedError:
+            res = 'error'
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("Информация")
+            msg.setText("Подключение к серверу отсутсвует!")
+            msg.exec()
+        if res != 'error':
+            return float(res)
+        else:
+            return 0
+
+    def recvall(self, sock):
+        BUFF_SIZE = 256  # 4 KiB
+        data = b''
+        while True:
+            part = sock.recv(BUFF_SIZE)
+            data += part
+            if len(part) == 0:
+                break
+        return data
 
 
 if __name__ == "__main__":

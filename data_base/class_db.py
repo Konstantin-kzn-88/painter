@@ -27,8 +27,8 @@ class Data_base(QtWidgets.QWidget):
         self.db_name = db_name
         self.db_path = db_path
         # Иконки
-        path_ico = str(Path(os.getcwd()).parents[0])
-        main_ico = QtGui.QIcon(path_ico + '/ico/comp.png')
+        path_ico = str(Path(os.getcwd()))
+        main_ico = QtGui.QIcon(path_ico + '/ico/painter.png')
         self.setWindowIcon(main_ico)
 
     def __convertToBinaryData(self, file_path):
@@ -51,7 +51,6 @@ class Data_base(QtWidgets.QWidget):
         :@return: tuple: db_name - имя базы данных
                          db_path - путь базы данных
         """
-        print(f'{self.db_path}/{self.db_name}.db')
         # 1. Получить имя новой базы данных, если параметры не были заданы в ручную
         if self.db_name == '':
             self.db_name, status = QtWidgets.QInputDialog.getText(self, 'Создать новую базу данных',

@@ -6,6 +6,7 @@ import datetime
 from server import geom
 
 
+
 class ThredingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
 
@@ -25,31 +26,44 @@ class Safety_server(socketserver.BaseRequestHandler):
 
         # 3. Попоробем взять № пути обработки и данные
         num_direction, data = self.get_data_in_request(request)
+        print(num_direction, data, "num_direction, data")
 
         # 4. По номеру пути определим, то что нужно клиенту:
         #    Коды:
-        #
-        #      0 - расстояние между 2 точками
+        #      0 - проверка ключа
+        #      1 - расстояние между 2 точками
 
-        # Пожар пролива
+        # Ключ
         if num_direction == 0:
+            with open('keys.txt') as f:
+                print(data,"data")
+                if data in f.read():
+                    print(data)
+                    answer = 'True'
+                else:
+                    answer = 'False'
+        # Расстояние
+        elif num_direction == 1:
+            print(data, "data")
+            data = [float(i) for i in eval(data)]
             answer = geom.lenght_for_line(data)
 
         else:
             answer = 'error'
 
         # 5. Закодируем ответ в байты и отправим его пользователю
+        print(answer, "answer")
         ans = bytes(str(answer), encoding='utf-8')
-        # self.request.sendall(ans)
         self.send_msg(self.request,ans)
 
 
 
     def get_data_in_request(self, request: str):
+        print(request, "request")
         try:
-            num_direction, data = eval(request)
-            data = [float(i) for i in data]
-            return num_direction, data
+            request.replace('(', '').replace(')', '')
+            num_direction, data = request.split(',')
+            return int(num_direction), data
         except:
             num_direction, data = 404, 'error'
             return num_direction, data

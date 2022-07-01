@@ -16,7 +16,6 @@ import os
 import sys
 import time
 from pathlib import Path
-import socket
 
 from PySide2.QtCore import QRectF, Qt
 from PySide2.QtWidgets import (
@@ -52,8 +51,9 @@ from PySide2.QtGui import QImage, QIcon, QPixmap, QFont, QColor, QPainter, QPen
 # Классы проекта
 # db
 from data_base import class_db
+from client import client
 
-IP = '127.0.0.1'
+
 
 
 class Object_point(QGraphicsItem):
@@ -100,6 +100,9 @@ class Painter(QMainWindow):
         # self.data_draw_point становится [].
 
         self.point_for_scale = []
+
+        # д. Переменная наличия ключа на сервере
+        self.check_key = True
 
     def set_ico(self):
         """
@@ -510,6 +513,8 @@ class Painter(QMainWindow):
     # ___________Функции_с_ген.планом_END________________
 
     def scene_press_event(self, event):
+        # проверим ключ на сервере
+        self.check_key = client.Client().check_key()
         # Проверим наличие ген.плана
         if self.plan_list.currentText() != '--Нет ген.планов--':
             # Проверим нажатие кнопки draw_type_act,
@@ -517,7 +522,7 @@ class Painter(QMainWindow):
             # - масштаб
             # - измерить растояние
             # - определить площадь:
-            ...
+
             if self.draw_type_act.isChecked():
                 # Отожмем кнопку отрисовки координатов объектов
                 self.draw_obj.setChecked(False)
@@ -527,7 +532,7 @@ class Painter(QMainWindow):
                     self.draw_all_item(self.point_for_scale)
                     if len(self.point_for_scale) == 4:  # как только длина data_draw_point == 4
                         num_int, ok = QInputDialog.getInt(self, "Масштаб", "Сколько метров:")
-                        length = self.server_get_lenght(self.point_for_scale)
+                        length = client.Client().server_get_lenght(self.point_for_scale)
                         if length > 0:
                             if ok and num_int > 0 and length > 0:
                                 self.point_for_scale.clear()  # очищаем
@@ -536,30 +541,13 @@ class Painter(QMainWindow):
                                 self.draw_type_act.setChecked(False)
                                 self.del_all_item()
                             elif ok and num_int <= 0:
-                                self.point_for_scale.clear()  # очищаем data_draw_point
-                                self.draw_type_act.setChecked(False)
-                                self.del_all_item()
-                                self.result_type_act.clear()
-                                self.scale_plan.clear()
+                                self.__clear_scale()
                             elif not ok:
-                                self.point_for_scale.clear()  # очищаем data_draw_point
-                                self.draw_type_act.setChecked(False)
-                                self.del_all_item()
-                                self.result_type_act.clear()
-                                self.scale_plan.clear()
+                                self.__clear_scale()
                         else:
-                            self.point_for_scale.clear()  # очищаем data_draw_point
-                            self.draw_type_act.setChecked(False)
-                            self.del_all_item()
-                            self.result_type_act.clear()
-                            self.scale_plan.clear()
-
-
-
+                            self.__clear_scale()
                     elif len(self.point_for_scale) > 4:
-                        self.point_for_scale.clear()  # очищаем data_draw_point
-                        self.draw_type_act.setChecked(False)
-                        self.del_all_item()
+                        self.clear_scale()
 
     # ___________Функции_отрисовки_объектов_на_ген.плане_START________________
     def del_all_item(self):
@@ -600,6 +588,21 @@ class Painter(QMainWindow):
             self.scene.addItem(line)
             k -= 2
             k += 4
+
+    def __clear_scale(self):
+        """
+        Вспомогательная функция:
+        - очищает массив точек списка масштаба
+        - отжимает кнопку действия draw_type_act
+        - очищает все items со сцены
+        - очищает label с резульатами (длины, площади, масштаба)
+        - очищает поле масштаба
+        """
+        self.point_for_scale.clear()  # очищаем data_draw_point
+        self.draw_type_act.setChecked(False)
+        self.del_all_item()
+        self.result_type_act.clear()
+        self.scale_plan.clear()
 
     # ___________Функции_отрисовки_объектов_на_ген.плане_END________________
 
@@ -644,35 +647,15 @@ class Painter(QMainWindow):
             msg.exec()
             return
 
-    def server_get_lenght(self, data: list) -> float:
-        try:
-            server_call = 0
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((IP, 8888))
-            str = f'({server_call}, {data})'
-            sock.send(bytes(str, encoding='utf-8'))
-            res = self.recvall(sock)
-        except ConnectionRefusedError:
-            res = 'error'
+        if self.scale_plan.text() == '':
             msg = QMessageBox(self)
             msg.setIcon(QMessageBox.Warning)
             msg.setWindowTitle("Информация")
-            msg.setText("Подключение к серверу отсутсвует!")
+            msg.setText("Не указан масштаб!")
             msg.exec()
-        if res != 'error':
-            return float(res)
-        else:
-            return 0
+            return
 
-    def recvall(self, sock):
-        BUFF_SIZE = 256  # 4 KiB
-        data = b''
-        while True:
-            part = sock.recv(BUFF_SIZE)
-            data += part
-            if len(part) == 0:
-                break
-        return data
+
 
 
 if __name__ == "__main__":

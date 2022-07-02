@@ -2,7 +2,7 @@ import os
 import time
 import socketserver
 import datetime
-
+import json
 from server import geom
 
 
@@ -26,7 +26,6 @@ class Safety_server(socketserver.BaseRequestHandler):
 
         # 3. Попоробем взять № пути обработки и данные
         num_direction, data = self.get_data_in_request(request)
-        print(num_direction, data, "num_direction, data")
 
         # 4. По номеру пути определим, то что нужно клиенту:
         #    Коды:
@@ -44,26 +43,23 @@ class Safety_server(socketserver.BaseRequestHandler):
                     answer = 'False'
         # Расстояние
         elif num_direction == 1:
-            print(data, "data")
-            data = [float(i) for i in eval(data)]
+            data = [float(i) for i in data]
             answer = geom.lenght_for_line(data)
 
         else:
             answer = 'error'
 
         # 5. Закодируем ответ в байты и отправим его пользователю
-        print(answer, "answer")
         ans = bytes(str(answer), encoding='utf-8')
         self.send_msg(self.request,ans)
 
 
 
     def get_data_in_request(self, request: str):
-        print(request, "request")
         try:
-            request.replace('(', '').replace(')', '')
-            num_direction, data = request.split(',')
-            return int(num_direction), data
+            request = json.loads(request)
+            num_direction, data = request
+            return num_direction, data
         except:
             num_direction, data = 404, 'error'
             return num_direction, data

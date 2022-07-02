@@ -12,8 +12,9 @@
 
 from PySide2 import QtWidgets, QtGui, QtCore
 import socket
+import json
 
-KEY = 'bbb'
+KEY = '@v&#XST3kH-t9fZad69eN'
 IP = '127.0.0.1'
 
 class Client(QtWidgets.QWidget):
@@ -37,8 +38,8 @@ class Client(QtWidgets.QWidget):
             server_call = 0
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((IP, 8888))
-            str = f'({server_call}, {self.key})'
-            sock.send(bytes(str, encoding='utf-8'))
+            str_json =  json.dumps((server_call, self.key))
+            sock.send(bytes(str_json, encoding='utf-8'))
             res = self.__recvall(sock)
         except ConnectionRefusedError:
             res = 'error'
@@ -57,8 +58,8 @@ class Client(QtWidgets.QWidget):
             server_call = 1
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((IP, 8888))
-            str = f'({server_call}, {data})'
-            sock.send(bytes(str, encoding='utf-8'))
+            str_json =  json.dumps((server_call, data))
+            sock.send(bytes(str_json, encoding='utf-8'))
             res = self.__recvall(sock)
         except ConnectionRefusedError:
             res = 'error'

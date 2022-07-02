@@ -38,7 +38,7 @@ class Safety_server(socketserver.BaseRequestHandler):
             with open('keys.txt', 'r') as file:
                 for line in file:
                     print(line, data, '==')
-                    if data == line:
+                    if str(data) == str(line):
                         answer = 'True'
                     else:
                         answer = 'False'

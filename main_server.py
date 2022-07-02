@@ -32,15 +32,16 @@ class Safety_server(socketserver.BaseRequestHandler):
         #      0 - проверка ключа
         #      1 - расстояние между 2 точками
 
+        answer = 'error'
         # Ключ
         if num_direction == 0:
-            with open('keys.txt') as f:
-                print(data,"data")
-                if data in f.read():
-                    print(data)
-                    answer = 'True'
-                else:
-                    answer = 'False'
+            with open('keys.txt', 'r') as file:
+                for line in file:
+                    print(line, data, '==')
+                    if data == line:
+                        answer = 'True'
+                    else:
+                        answer = 'False'
         # Расстояние
         elif num_direction == 1:
             data = [float(i) for i in data]
@@ -49,6 +50,7 @@ class Safety_server(socketserver.BaseRequestHandler):
         else:
             answer = 'error'
 
+        print(answer, "answer")
         # 5. Закодируем ответ в байты и отправим его пользователю
         ans = bytes(str(answer), encoding='utf-8')
         self.send_msg(self.request,ans)

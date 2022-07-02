@@ -515,6 +515,14 @@ class Painter(QMainWindow):
     def scene_press_event(self, event):
         # проверим ключ на сервере
         self.check_key = client.Client().check_key()
+        print(self.check_key,'self.check_key')
+        if not self.check_key:
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("Информация")
+            msg.setText("Ключ на сервере отсутсвует!")
+            msg.exec()
+            return
         # Проверим наличие ген.плана
         if self.plan_list.currentText() != '--Нет ген.планов--':
             # Проверим нажатие кнопки draw_type_act,
@@ -647,11 +655,12 @@ class Painter(QMainWindow):
             msg.exec()
             return
 
-        if self.scale_plan.text() == '':
+        # 4. Есть ли подключение к серверу
+        if not self.check_key:
             msg = QMessageBox(self)
             msg.setIcon(QMessageBox.Warning)
             msg.setWindowTitle("Информация")
-            msg.setText("Не указан масштаб!")
+            msg.setText("Ключ на сервере отсутсвует!")
             msg.exec()
             return
 

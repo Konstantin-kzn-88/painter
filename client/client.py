@@ -13,6 +13,8 @@
 from PySide2 import QtWidgets, QtGui, QtCore
 import socket
 import json
+from pathlib import Path
+import os
 
 KEY = '@v&#XST3kH-t9fZad69eN'
 IP = '127.0.0.1'
@@ -21,6 +23,10 @@ class Client(QtWidgets.QWidget):
     def __init__(self, key = KEY):
         super().__init__()
         self.key = key
+        # Иконки
+        path_ico = str(Path(os.getcwd()))
+        main_ico = QtGui.QIcon(path_ico + '/ico/painter.png')
+        self.setWindowIcon(main_ico)
 
     def __recvall(self, sock):
         """Функция приема сообщения целиком"""
@@ -49,7 +55,7 @@ class Client(QtWidgets.QWidget):
             msg.setText("Подключение к серверу отсутсвует!")
             msg.exec()
         if res != 'error':
-            return bool(res)
+            return eval(res)
         else:
             return False
 

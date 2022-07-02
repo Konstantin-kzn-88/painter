@@ -95,11 +95,11 @@ class Painter(QMainWindow):
         # г. Список для запоминания координат для определения масштаба
         # по следующему алгоритму:
         # при каждом нажатии на ген.план запоминает координаты клика (х,у)
-        # затем при len(self.point_for_scale) == 4, запрашивает у пользователя
+        # затем при len(self.draw_point) == 4, запрашивает у пользователя
         # QInputDialog число, чему этом отрезок равен в метрах и вычисляется масштаб
-        # self.data_draw_point становится [].
+        # self.draw_point становится [].
 
-        self.point_for_scale = []
+        self.draw_point = []
 
         # д. Переменная наличия ключа на сервере
         self.check_key = True
@@ -515,13 +515,15 @@ class Painter(QMainWindow):
     def scene_press_event(self, event):
         # проверим ключ на сервере
         self.check_key = client.Client().check_key()
-        print(self.check_key,'self.check_key')
         if not self.check_key:
             msg = QMessageBox(self)
             msg.setIcon(QMessageBox.Warning)
             msg.setWindowTitle("Информация")
             msg.setText("Ключ на сервере отсутсвует!")
             msg.exec()
+            self.draw_type_act.setChecked(False)
+            self.draw_obj.setChecked(False)
+            self.__clear_scale()
             return
         # Проверим наличие ген.плана
         if self.plan_list.currentText() != '--Нет ген.планов--':
@@ -534,16 +536,17 @@ class Painter(QMainWindow):
             if self.draw_type_act.isChecked():
                 # Отожмем кнопку отрисовки координатов объектов
                 self.draw_obj.setChecked(False)
+                # 1. Выбран масштаб
                 if self.type_act.currentIndex() == 0:
-                    self.point_for_scale.append(str(event.scenePos().x()))  # замеряем координаты клика
-                    self.point_for_scale.append(str(event.scenePos().y()))  # и записываем в data_draw_point
-                    self.draw_all_item(self.point_for_scale)
-                    if len(self.point_for_scale) == 4:  # как только длина data_draw_point == 4
+                    self.draw_point.append(str(event.scenePos().x()))  # замеряем координаты клика
+                    self.draw_point.append(str(event.scenePos().y()))  # и записываем в draw_point
+                    self.draw_all_item(self.draw_point)
+                    if len(self.draw_point) == 4:  # как только длина draw_point == 4
                         num_int, ok = QInputDialog.getInt(self, "Масштаб", "Сколько метров:")
-                        length = client.Client().server_get_lenght(self.point_for_scale)
+                        length = client.Client().server_get_lenght(self.draw_point)
                         if length > 0:
                             if ok and num_int > 0 and length > 0:
-                                self.point_for_scale.clear()  # очищаем
+                                self.draw_point.clear()  # очищаем
                                 self.result_type_act.setText(f"В отрезке {num_int} м: {round(length, 2)} пикселей")
                                 self.scale_plan.setText(f"{float(length) / num_int:.3f}")
                                 self.draw_type_act.setChecked(False)
@@ -554,8 +557,30 @@ class Painter(QMainWindow):
                                 self.__clear_scale()
                         else:
                             self.__clear_scale()
-                    elif len(self.point_for_scale) > 4:
+                    elif len(self.draw_point) > 4:
                         self.clear_scale()
+
+                if self.type_act.currentIndex() == 1:
+                    print('draw lenght')
+                    self.del_all_item()  # удалим все Item
+                    if self.scale_plan.text() == "":  # проверим есть ли масштаб
+                        msg = QMessageBox(self)
+                        msg.setIcon(QMessageBox.Warning)
+                        msg.setWindowTitle("Информация")
+                        msg.setText("Не установлен масштаб")
+                        msg.exec()
+                        self.draw_type_act.setChecked(False)
+                        return
+                    self.draw_point.append(str(event.scenePos().x()))
+                    self.draw_point.append(str(event.scenePos().y()))
+                    self.draw_all_item(self.draw_point)
+                    print(self.draw_point)
+                    if len(self.draw_point) > 2:
+                        length = client.Client().server_get_lenght(self.draw_point)
+                        print(length)
+                        real_lenght = float(length) / float(self.scale_plan.displayText())
+                        real_lenght = round(real_lenght, 2)
+                        self.result_type_act.setText(f'Длина линии {real_lenght}, м')
 
     # ___________Функции_отрисовки_объектов_на_ген.плане_START________________
     def del_all_item(self):
@@ -606,7 +631,7 @@ class Painter(QMainWindow):
         - очищает label с резульатами (длины, площади, масштаба)
         - очищает поле масштаба
         """
-        self.point_for_scale.clear()  # очищаем data_draw_point
+        self.draw_point.clear()  # очищаем draw_point
         self.draw_type_act.setChecked(False)
         self.del_all_item()
         self.result_type_act.clear()

@@ -67,6 +67,7 @@ class Client(QtWidgets.QWidget):
             str_json =  json.dumps((server_call, data))
             sock.send(bytes(str_json, encoding='utf-8'))
             res = self.__recvall(sock)
+            print(res, 'res')
         except ConnectionRefusedError:
             res = 'error'
             msg = QtWidgets.QMessageBox(self)
@@ -74,7 +75,8 @@ class Client(QtWidgets.QWidget):
             msg.setWindowTitle("Информация")
             msg.setText("Подключение к серверу отсутсвует!")
             msg.exec()
-        if res != 'error':
+        if res != b'error':
             return float(res)
         else:
             return 0
+

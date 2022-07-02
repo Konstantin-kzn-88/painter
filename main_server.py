@@ -18,7 +18,7 @@ class Safety_server(socketserver.BaseRequestHandler):
 
     def handle(self):
         # 1. Получим информацию в байтах от клиента
-        bytes_in_handle = self.request.recv(1024).strip()
+        bytes_in_handle = self.request.recv(4096).strip()
 
         # 2. Определим ip-адрес и информацию от клиента
         _ = str(self.client_address[0]) # adress
@@ -37,9 +37,9 @@ class Safety_server(socketserver.BaseRequestHandler):
         if num_direction == 0:
             with open('keys.txt', 'r') as file:
                 for line in file:
-                    print(line, data, '==')
                     if str(data) == str(line):
                         answer = 'True'
+                        break
                     else:
                         answer = 'False'
         # Расстояние

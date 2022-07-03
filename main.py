@@ -177,7 +177,7 @@ class Painter(QMainWindow):
         self.type_act.setItemIcon(0, self.scale_ico)
         self.type_act.setItemIcon(1, self.dist_ico)
         self.type_act.setItemIcon(2, self.area_ico)
-        # self.type_act.activated[str].connect(self.select_type_act)
+        self.type_act.activated[str].connect(self.__select_type_act)
         self.result_type_act = QLabel()  # для вывода результата применения type_act + draw_type_act
         self.draw_type_act = QPushButton("Применить")
         # self.draw_type_act.clicked.connect(self.change_draw_type_act)
@@ -558,7 +558,7 @@ class Painter(QMainWindow):
                         else:
                             self.__clear_scale()
                     elif len(self.draw_point) > 4:
-                        self.clear_scale()
+                        self.__clear_scale()
 
                 if self.type_act.currentIndex() == 1:
                     print('draw lenght')
@@ -609,7 +609,6 @@ class Painter(QMainWindow):
         thickness_marker = 5
         while i < len(coordinate):
             # thickness_marker = int(self.thickness_line.value() * 5)  # сторона маркера должна быть в 4 раза больше
-
             name_rings = Object_point(thickness_marker)
             name_rings.setPos(float(coordinate[i]), float(coordinate[i + 1]))
             self.scene.addItem(name_rings)
@@ -636,6 +635,17 @@ class Painter(QMainWindow):
         self.del_all_item()
         self.result_type_act.clear()
         self.scale_plan.clear()
+
+    def __select_type_act(self):
+        """
+        Вспомогательная функция:
+        - очищает массив точек списка масштаба, (длины, площади)
+        - очищает все items со сцены
+        - отжимает кнопку действия draw_type_act
+        """
+        self.draw_point.clear()  # очистим координаты
+        self.del_all_item()
+        self.draw_type_act.setChecked(False)
 
     # ___________Функции_отрисовки_объектов_на_ген.плане_END________________
 

@@ -1,4 +1,3 @@
-
 import socketserver
 import json
 from server import geom
@@ -38,7 +37,7 @@ class Painter_server(socketserver.BaseRequestHandler):
         if num_direction == 0:
             with open('keys.txt', 'r') as file:
                 for line in file:
-                    if str(data) == str(line):
+                    if str(data) == str(line).splitlines():
                         answer = 'True'
                         break
                     else:

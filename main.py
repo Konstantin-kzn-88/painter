@@ -559,9 +559,8 @@ class Painter(QMainWindow):
                             self.__clear_scale()
                     elif len(self.draw_point) > 4:
                         self.__clear_scale()
-
+                # выбрано определение длины отрезка
                 if self.type_act.currentIndex() == 1:
-                    print('draw lenght')
                     self.del_all_item()  # удалим все Item
                     if self.scale_plan.text() == "":  # проверим есть ли масштаб
                         msg = QMessageBox(self)
@@ -577,10 +576,30 @@ class Painter(QMainWindow):
                     print(self.draw_point)
                     if len(self.draw_point) > 2:
                         length = client.Client().server_get_lenght(self.draw_point)
-                        print(length)
                         real_lenght = float(length) / float(self.scale_plan.displayText())
                         real_lenght = round(real_lenght, 2)
                         self.result_type_act.setText(f'Длина линии {real_lenght}, м')
+
+                if self.type_act.currentIndex() == 2:
+                    self.del_all_item()  # удалим все Item
+                    if self.scale_plan.text() == "":  # проверим есть ли масштаб
+                        msg = QMessageBox(self)
+                        msg.setIcon(QMessageBox.Warning)
+                        msg.setWindowTitle("Информация")
+                        msg.setText("Не установлен масштаб")
+                        msg.exec()
+                        self.draw_type_act.setChecked(False)
+                        return
+                    self.draw_point.append(str(event.scenePos().x()))
+                    self.draw_point.append(str(event.scenePos().y()))
+                    self.draw_all_item(self.draw_point)
+
+                    if len(self.draw_point) > 4:
+                        area = client.Client().server_get_area(self.draw_point)
+                        real_area = float(area) / pow(float(self.scale_plan.displayText()), 2)
+                        real_area = round(real_area, 2)
+                        self.result_type_act.setText(f'Площадь {real_area}, м2')
+
 
     # ___________Функции_отрисовки_объектов_на_ген.плане_START________________
     def del_all_item(self):

@@ -2,9 +2,6 @@ import socketserver
 import json
 from server import geom
 
-
-
-
 class ThredingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
 
@@ -31,6 +28,7 @@ class Painter_server(socketserver.BaseRequestHandler):
         #    Коды:
         #      0 - проверка ключа
         #      1 - расстояние между 2 точками
+        #      2 - площадь многоугольника
 
         answer = 'error'
         # Ключ
@@ -47,6 +45,9 @@ class Painter_server(socketserver.BaseRequestHandler):
             data = [float(i) for i in data]
             answer = geom.lenght_for_line(data)
 
+        elif num_direction == 2:
+            data = [float(i) for i in data]
+            answer = geom.area_for_poligon(data)
         else:
             answer = 'error'
         print(answer, "answer")

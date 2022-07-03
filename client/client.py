@@ -80,3 +80,23 @@ class Client(QtWidgets.QWidget):
         else:
             return 0
 
+    def server_get_area(self, data: list) -> float:
+        try:
+            server_call = 2
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((IP, 8888))
+            str_json =  json.dumps((server_call, data))
+            sock.send(bytes(str_json, encoding='utf-8'))
+            res = self.__recvall(sock)
+            print(res, 'res')
+        except ConnectionRefusedError:
+            res = 'error'
+            msg = QtWidgets.QMessageBox(self)
+            msg.setIcon(QtWidgets.QMessageBox.Warning)
+            msg.setWindowTitle("Информация")
+            msg.setText("Подключение к серверу отсутсвует!")
+            msg.exec()
+        if res != b'error':
+            return float(res)
+        else:
+            return 0

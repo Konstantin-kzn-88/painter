@@ -285,7 +285,7 @@ class Painter(QMainWindow):
         self.add_row.setStyleSheet("text-align: left;")
         self.add_row.setIcon(self.plus_ico)
         self.add_row.setToolTip("Добавить строку в таблицу")
-        # self.add_row.clicked.connect(self.add_in_table)
+        self.add_row.clicked.connect(self.add_row_in_table)
         self.add_row_copy = QPushButton("")
         self.add_row_copy.setIcon(self.copy_ico)
         self.add_row_copy.setToolTip("Скопировать последнюю строку")
@@ -295,7 +295,7 @@ class Painter(QMainWindow):
         self.del_row.setStyleSheet("text-align: left;")
         self.del_row.setIcon(self.minus_ico)
         self.del_row.setToolTip("Удалить строку из таблицу")
-        # self.del_row.clicked.connect(self.del_in_table)
+        self.del_row.clicked.connect(self.del_row_in_table)
 
         self.draw_obj = QPushButton("Координаты")
         self.draw_obj.setStyleSheet("text-align: left;")
@@ -318,7 +318,7 @@ class Painter(QMainWindow):
         self.save_table = QPushButton("Сохранить")
         self.save_table.setToolTip('Сохранить объекты в базу данных')
         self.save_table.setIcon(self.save_ico)
-        # self.save_table.clicked.connect(self.save_table_in_db)
+        self.save_table.clicked.connect(self.save_table_in_db)
 
         hbox_add = QHBoxLayout()
         hbox_add.addWidget(self.add_row)
@@ -444,6 +444,18 @@ class Painter(QMainWindow):
         else:
             self.data_base_info_connect.setText('Нет подключения к базе данных...')
             self.data_base_info_connect.setStyleSheet('color: red')
+
+    def save_table_in_db(self):
+        """
+        Функция сохранения информации в базу данных план+маштаб+данные из таблицы
+        """
+        # Проверки перед сохранением
+        self.is_action_valid()
+
+        # Проверки пройдены, можно запоминать данные:
+        class_db.Data_base(self.db_name, self.db_path).save_data_in_db(self.plan_list.currentText(),
+                                                                       self.scale_plan.text(),
+                                                                       self.table_data)
 
     # ___________Функции_БД_END________________
 
@@ -668,17 +680,36 @@ class Painter(QMainWindow):
 
     # ___________Функции_отрисовки_объектов_на_ген.плане_END________________
 
-    def save_table_in_db(self):
-        """
-        Функция сохранения информации в базу данных из таблицы данных
-        """
-        # Проверки перед сохранением
-        self.is_action_valid()  # проверки
+    # ___________Функции_работы_с_таблицей_START________________
+    def add_row_in_table(self):
+        count_row = self.table_data.rowCount()  # посчитаем количество строк
+        self.table_data.insertRow(count_row)
+        self.del_all_item()
 
-        # Проверки пройдены, можно запоминать данные:
-        class_db.Data_base(self.db_name, self.db_path).save_data_in_db(self.plan_list.currentText(),
-                                                                       self.scale_plan.text(),
-                                                                       self.table_data)
+    def del_row_in_table(self):
+        index = self.table_data.currentIndex()
+        self.table_data.removeRow(index.row())
+
+    def get_data_in_table(self):
+        data_list = []
+        count_row = 0  # начинаем с 0 строки
+        for _ in range(0, self.table_data.rowCount()):  # посчитаем строки
+            append_list = []  # заведем пустой список для объекта
+            count_col = 0  # колонка с индесом 0
+            for _ in range(0, self.table_data.columnCount()):  # для каждого столбца строки
+
+                if count_col != self.table_data.columnCount() - 1:
+                    var = self.table_data.item(count_row, count_col).text().replace(',', '.')
+                else:
+                    var = self.table_data.item(count_row, count_col).text()
+                append_list.append(var)  # добавим в словарь текст ячейки
+                count_col += 1  # + 1 к столбцу
+            data_list.append(append_list)  # добавим объект
+            count_row += 1  # +1 к строке (новая строка если len(data_list) > 1)
+        return data_list
+
+    # ___________Функции_работы_с_таблицей_END________________
+
 
     def is_action_valid(self):
         """
@@ -718,6 +749,24 @@ class Painter(QMainWindow):
             msg.exec()
             return
 
+        # 5. Есть ли объекты в таблице
+        if self.table_data.rowCount() == 0:
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Warning)
+            msg.setWindowTitle("Информация")
+            msg.setText("Нет объектов для сохранения!")
+            msg.exec()
+            return
+        # 6. Есть ли пустые ячейки в таблице данных
+        for i in range(self.table_data.rowCount()):
+            for j in range(self.table_data.columnCount()):
+                if self.table_data.item(i, j).text() == '':
+                    msg = QMessageBox(self)
+                    msg.setIcon(QMessageBox.Warning)
+                    msg.setWindowTitle("Информация")
+                    msg.setText("Не все данные таблицы заполнены!")
+                    msg.exec()
+                    return
 
 
 

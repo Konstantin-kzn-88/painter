@@ -54,8 +54,6 @@ from data_base import class_db
 from client import client
 
 
-
-
 class Object_point(QGraphicsItem):
     def __init__(self, thickness):
         super().__init__()
@@ -180,7 +178,7 @@ class Painter(QMainWindow):
         self.type_act.activated[str].connect(self.__select_type_act)
         self.result_type_act = QLabel()  # для вывода результата применения type_act + draw_type_act
         self.draw_type_act = QPushButton("Применить")
-        # self.draw_type_act.clicked.connect(self.change_draw_type_act)
+        self.draw_type_act.clicked.connect(self.__change_draw_type_act)
         self.draw_type_act.setCheckable(True)
         self.draw_type_act.setChecked(False)
         # Упаковываем все в QGroupBox Рамка №1
@@ -289,7 +287,7 @@ class Painter(QMainWindow):
         self.add_row_copy = QPushButton("")
         self.add_row_copy.setIcon(self.copy_ico)
         self.add_row_copy.setToolTip("Скопировать последнюю строку")
-        # self.add_row.clicked.connect(self.add_in_table)
+        self.add_row_copy.clicked.connect(self.copy_row)
 
         self.del_row = QPushButton("Удалить")
         self.del_row.setStyleSheet("text-align: left;")
@@ -398,29 +396,6 @@ class Painter(QMainWindow):
         self.setCentralWidget(central_widget)
         # ___________N_START________________
         self.show()
-
-    def table_data_view(self):
-        """
-        Оформление таблицы для введения данных self.table_data
-        """
-
-        header_list = ['Название объекта', 'R1, м', 'R2, м',
-                       'R3, м', 'R4, м',
-                       'R5, м', 'R6, м', 'Тип', 'Координаты']
-
-        for header in header_list:
-            item = QTableWidgetItem(header)
-            item.setBackground(QColor(0, 225, 0))
-            self.table_data.setHorizontalHeaderItem(header_list.index(header), item)
-            if header == 'Тип':
-                item.setToolTip(
-                    '''Тип оборудования:
-                    0 - линейный
-                    1 - площадной'''
-                )
-        # масштабирование под контент
-        self.table_data.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.table_data.horizontalHeader().setSectionResizeMode(8, QHeaderView.ResizeToContents)
 
     # ___________Функции_БД_START________________
     def database_create(self):
@@ -612,7 +587,6 @@ class Painter(QMainWindow):
                         real_area = round(real_area, 2)
                         self.result_type_act.setText(f'Площадь {real_area}, м2')
 
-
     # ___________Функции_отрисовки_объектов_на_ген.плане_START________________
     def del_all_item(self):
         """
@@ -678,6 +652,19 @@ class Painter(QMainWindow):
         self.del_all_item()
         self.draw_type_act.setChecked(False)
 
+    def __change_draw_type_act(self):
+        """
+        Вспомогательная функция:
+        При нажатии кнопки "Применить" (выбор действия)
+        масштаб/растояние/площадь
+        координаты должны очищаться, объекты удаляться
+        со сцены
+        """
+        self.draw_point.clear()  # очистим координаты
+        self.del_all_item()
+        if self.draw_obj.isChecked():
+            self.draw_obj.setChecked(False)
+
     # ___________Функции_отрисовки_объектов_на_ген.плане_END________________
 
     # ___________Функции_работы_с_таблицей_START________________
@@ -708,8 +695,47 @@ class Painter(QMainWindow):
             count_row += 1  # +1 к строке (новая строка если len(data_list) > 1)
         return data_list
 
-    # ___________Функции_работы_с_таблицей_END________________
+    def table_data_view(self):
+        """
+        Оформление таблицы для введения данных self.table_data
+        """
 
+        header_list = ['Название объекта', 'R1, м', 'R2, м',
+                       'R3, м', 'R4, м',
+                       'R5, м', 'R6, м', 'Тип', 'Координаты']
+
+        for header in header_list:
+            item = QTableWidgetItem(header)
+            item.setBackground(QColor(0, 225, 0))
+            self.table_data.setHorizontalHeaderItem(header_list.index(header), item)
+            if header == 'Тип':
+                item.setToolTip(
+                    '''Тип оборудования:
+                    0 - линейный
+                    1 - площадной'''
+                )
+        # масштабирование под контент
+        self.table_data.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.table_data.horizontalHeader().setSectionResizeMode(8, QHeaderView.ResizeToContents)
+
+    def copy_row(self):
+        """
+        Функция копирования строки в таблице с данными
+        """
+        # индекс выделенной строки, если ничего не выбрано выдает "-1"
+        index = self.table_data.currentIndex()
+        if index.row() == -1:  # нет индекса
+            return
+        # скопируем выделенную строку
+        data_for_copy = [self.table_data.item(index.row(), j).text() for j in range(self.table_data.columnCount())]
+        # добавим строку
+        self.add_row_in_table()
+        # заполним новую строку скопированными данными
+        for j in range(self.table_data.columnCount()):
+            widget_item_for_table = QTableWidgetItem(str(data_for_copy[j]))
+            self.table_data.setItem(self.table_data.rowCount() - 1, j, widget_item_for_table)
+
+    # ___________Функции_работы_с_таблицей_END________________
 
     def is_action_valid(self):
         """
@@ -767,7 +793,6 @@ class Painter(QMainWindow):
                     msg.setText("Не все данные таблицы заполнены!")
                     msg.exec()
                     return
-
 
 
 if __name__ == "__main__":

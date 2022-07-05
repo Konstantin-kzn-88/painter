@@ -17,13 +17,12 @@ import sys
 import time
 from pathlib import Path
 
-from PySide2.QtCore import QRectF, Qt
+from PySide2.QtCore import QRectF, Qt, QModelIndex
 from PySide2.QtWidgets import (
     QApplication,
     QLabel,
     QMainWindow,
     QPushButton,
-    QVBoxLayout,
     QHBoxLayout,
     QWidget,
     QGridLayout,
@@ -274,7 +273,7 @@ class Painter(QMainWindow):
 
         self.table_data = QTableWidget(0, 9)
         self.table_data_view()  # фукция отрисовки заголовков таблицы
-        # self.table_data.clicked[QModelIndex].connect(self.get_index_in_table)
+        self.table_data.clicked[QModelIndex].connect(self.get_index_in_table)
         # кнопки управления
         layout_control = QFormLayout(self)
         GB_control = QGroupBox('Действия объекта')
@@ -594,6 +593,30 @@ class Painter(QMainWindow):
                         real_area = float(area) / pow(float(self.scale_plan.displayText()), 2)
                         real_area = round(real_area, 2)
                         self.result_type_act.setText(f'Площадь {real_area}, м2')
+            # если выбрано рисовать координаты
+            if self.draw_obj.isChecked():
+                # Отожмем кнопку отрисовки масштаба
+                self.draw_type_act.setChecked(False)
+                print(self.row_ind_in_data_grid, "self.row_ind_in_data_grid")
+                # Если выбрана сторока, то запишем координаты
+                if self.row_ind_in_data_grid is not None:
+                    # запишем координаты
+
+                    self.draw_point.clear()
+
+                    self.draw_point.extend(eval(self.table_data.item(self.row_ind_in_data_grid,
+                                                                     self.table_data.columnCount() - 1).text()))
+                    self.draw_point.append(str(event.scenePos().x()))  # замеряем координаты клика
+                    self.draw_point.append(str(event.scenePos().y()))  # и запсываем в data_draw_point
+
+                    widget_item_for_table = QTableWidgetItem(str(self.draw_point))
+                    self.table_data.setItem(self.row_ind_in_data_grid,
+                                            self.table_data.columnCount() - 1,
+                                            widget_item_for_table)
+                    self.draw_all_item(self.draw_point)
+                    self.draw_point.clear()
+                else:
+                    self.draw_obj.setChecked(False)
 
     # ___________Функции_отрисовки_объектов_на_ген.плане_START________________
     def del_all_item(self):
@@ -727,7 +750,7 @@ class Painter(QMainWindow):
                 )
         # масштабирование под контент
         self.table_data.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-        self.table_data.horizontalHeader().setSectionResizeMode(8, QHeaderView.ResizeToContents)
+        # self.table_data.horizontalHeader().setSectionResizeMode(8, QHeaderView.ResizeToContents)
 
     def copy_row(self):
         """
@@ -747,6 +770,25 @@ class Painter(QMainWindow):
             self.table_data.setItem(self.table_data.rowCount() - 1, j, widget_item_for_table)
 
     # ___________Функции_работы_с_таблицей_END________________
+
+    def get_index_in_table(self, index):
+
+        self.draw_type_act.setChecked(False)  # исключить измерение масштаба и пр.
+        self.draw_obj.setChecked(False)  # исключить дорисовку предыдущего объекта.
+        self.del_all_item()  # очистим координаты
+        self.row_ind_in_data_grid = index.row()  # возьмем индек строки
+        # Если ячейка крайнего столбца не пуста
+        if self.table_data.item(self.row_ind_in_data_grid,
+                                self.table_data.columnCount() - 1).text() != '[]':
+            # очистим список координат для отрисовки
+            self.draw_point.clear()
+            # считаем кооординаты
+            self.draw_point.extend(eval(self.table_data.item(self.row_ind_in_data_grid,
+                                                             self.table_data.columnCount() - 1).text()))
+            # отрисуем все точки
+            self.draw_all_item(self.draw_point)
+            # очистим список координат для отрисовки
+            self.draw_point.clear()
 
     def is_action_valid(self):
         """
@@ -804,7 +846,6 @@ class Painter(QMainWindow):
                     msg.setText("Не все данные таблицы заполнены!")
                     msg.exec()
                     return
-
 
 
 if __name__ == "__main__":

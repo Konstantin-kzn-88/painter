@@ -425,8 +425,15 @@ class Painter(QMainWindow):
         Функция сохранения информации в базу данных план+маштаб+данные из таблицы
         """
         # Проверки перед сохранением
-        self.is_action_valid()
-
+        for i in range(self.table_data.rowCount()):
+            for j in range(self.table_data.columnCount()):
+                if self.table_data.item(i, j) is None:
+                    msg = QMessageBox(self)
+                    msg.setIcon(QMessageBox.Warning)
+                    msg.setWindowTitle("Информация")
+                    msg.setText("Не все данные таблицы заполнены!")
+                    msg.exec()
+                    return
         # Проверки пройдены, можно запоминать данные:
         class_db.Data_base(self.db_name, self.db_path).save_data_in_db(self.plan_list.currentText(),
                                                                        self.scale_plan.text(),
@@ -493,8 +500,9 @@ class Painter(QMainWindow):
                 for item in obj:
                     # Запишем новые координаты после удаления в таблицу
                     widget_item_for_table = QTableWidgetItem(item)
-                    self.table_data.setItem(count_row, col,
-                                            widget_item_for_table)
+                    if col == 8:  # координаты нелья руками редактировать
+                        widget_item_for_table.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+                    self.table_data.setItem(count_row, col, widget_item_for_table)
                     col += 1
 
     # ___________Функции_с_ген.планом_END________________
@@ -671,6 +679,9 @@ class Painter(QMainWindow):
     def add_row_in_table(self):
         count_row = self.table_data.rowCount()  # посчитаем количество строк
         self.table_data.insertRow(count_row)
+        widget_item_for_table = QTableWidgetItem('[]')
+        widget_item_for_table.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        self.table_data.setItem(count_row, 8, widget_item_for_table)
         self.del_all_item()
 
     def del_row_in_table(self):
@@ -793,6 +804,7 @@ class Painter(QMainWindow):
                     msg.setText("Не все данные таблицы заполнены!")
                     msg.exec()
                     return
+
 
 
 if __name__ == "__main__":

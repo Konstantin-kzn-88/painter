@@ -17,7 +17,7 @@ import sys
 import time
 from pathlib import Path
 
-from PySide2.QtCore import QRectF, Qt, QModelIndex
+from PySide2.QtCore import QRectF, Qt, QModelIndex, QTranslator
 from PySide2.QtWidgets import (
     QApplication,
     QLabel,
@@ -43,6 +43,7 @@ from PySide2.QtWidgets import (
     QInputDialog,
     QGraphicsLineItem,
     QGraphicsItem,
+    QColorDialog,
 )
 
 from PySide2.QtGui import QImage, QIcon, QPixmap, QFont, QColor, QPainter, QPen
@@ -52,6 +53,7 @@ from PySide2.QtGui import QImage, QIcon, QPixmap, QFont, QColor, QPainter, QPen
 from data_base import class_db
 from client import client
 
+I18N_QT_PATH = str(os.path.join(os.path.abspath('.'), 'i18n'))
 
 class Object_point(QGraphicsItem):
     def __init__(self, thickness):
@@ -216,32 +218,32 @@ class Painter(QMainWindow):
         self.color_zone1_btn.setIcon(self.color_ico)
         self.color_zone1_btn.setToolTip("Цвет зоны 1")
         self.color_zone1_btn.setStyleSheet("background-color: red")
-        # self.color_zone1_btn.clicked.connect(self.select_color)
+        self.color_zone1_btn.clicked.connect(self.select_color)
         self.color_zone2_btn = QPushButton("R2")
         self.color_zone2_btn.setIcon(self.color_ico)
         self.color_zone2_btn.setToolTip("Цвет зоны 2")
         self.color_zone2_btn.setStyleSheet("background-color: blue")
-        # self.color_zone2_btn.clicked.connect(self.select_color)
+        self.color_zone2_btn.clicked.connect(self.select_color)
         self.color_zone3_btn = QPushButton("R3")
         self.color_zone3_btn.setIcon(self.color_ico)
         self.color_zone3_btn.setToolTip("Цвет зоны 3")
         self.color_zone3_btn.setStyleSheet("background-color: orange")
-        # self.color_zone3_btn.clicked.connect(self.select_color)
+        self.color_zone3_btn.clicked.connect(self.select_color)
         self.color_zone4_btn = QPushButton("R4")
         self.color_zone4_btn.setIcon(self.color_ico)
         self.color_zone4_btn.setToolTip("Цвет зоны 4")
         self.color_zone4_btn.setStyleSheet("background-color: green")
-        # self.color_zone4_btn.clicked.connect(self.select_color)
+        self.color_zone4_btn.clicked.connect(self.select_color)
         self.color_zone5_btn = QPushButton("R5")
         self.color_zone5_btn.setIcon(self.color_ico)
         self.color_zone5_btn.setToolTip("Цвет зоны 5")
         self.color_zone5_btn.setStyleSheet("background-color: magenta")
-        # self.color_zone5_btn.clicked.connect(self.select_color)
+        self.color_zone5_btn.clicked.connect(self.select_color)
         self.color_zone6_btn = QPushButton("R6")
         self.color_zone6_btn.setIcon(self.color_ico)
         self.color_zone6_btn.setToolTip("Цвет зоны 6")
         self.color_zone6_btn.setStyleSheet("background-color: yellow")
-        # self.color_zone6_btn.clicked.connect(self.select_color)
+        self.color_zone6_btn.clicked.connect(self.select_color)
 
         # Упаковываем все в QGroupBox Рамка №1
         layout_zone = QFormLayout(self)
@@ -298,7 +300,7 @@ class Painter(QMainWindow):
         self.draw_obj.setStyleSheet("text-align: left;")
         self.draw_obj.setToolTip('Указать координаты выбранного в таблице объекта')
         self.draw_obj.setIcon(self.object_ico)
-        # self.draw_obj.clicked.connect(self.change_draw_obj)
+        self.draw_obj.clicked.connect(self.__change_draw_obj)
         self.draw_obj.setCheckable(True)
         self.draw_obj.setChecked(False)
 
@@ -769,7 +771,6 @@ class Painter(QMainWindow):
             widget_item_for_table = QTableWidgetItem(str(data_for_copy[j]))
             self.table_data.setItem(self.table_data.rowCount() - 1, j, widget_item_for_table)
 
-
     def get_index_in_table(self, index):
 
         self.draw_type_act.setChecked(False)  # исключить измерение масштаба и пр.
@@ -788,7 +789,7 @@ class Painter(QMainWindow):
             self.draw_all_item(self.draw_point)
             # очистим список координат для отрисовки
             self.draw_point.clear()
-            
+
     def delete_last_coordinate(self):
         # Удалить все линии и точки с ген.плана
         self.del_all_item()
@@ -800,7 +801,7 @@ class Painter(QMainWindow):
                 self.draw_point.clear()
                 # считаем кооординаты
                 self.draw_point.extend(eval(self.table_data.item(self.row_ind_in_data_grid,
-                                                                      self.table_data.columnCount() - 1).text()))
+                                                                 self.table_data.columnCount() - 1).text()))
                 # Удалим последнюю точку (х,у)
                 self.draw_point = self.draw_point[:-2]
                 # отрисуем все точки
@@ -827,9 +828,38 @@ class Painter(QMainWindow):
                 self.table_data.setItem(self.row_ind_in_data_grid,
                                         self.table_data.columnCount() - 1,
                                         widget_item_for_table)
+
     # ___________Функции_работы_с_таблицей_END________________
 
+    # ___________Функции_работы_с_цветами_START________________
+    # 3. Выбор цвета для кнопок
+    def select_color(self):
+        # Определение цветов зон действия поражающих факторов
+        get_color = QColorDialog
+        color = get_color.getColor(parent=self)
+        color_rgb = color.getRgb()
+        red = color_rgb[0]
+        green = color_rgb[1]
+        blue = color_rgb[2]
+        # Какая кнопка послала сигнал?
+        btn = self.sender()
+        # Изменить цвет этой кнопке
+        btn.setStyleSheet(f'background: rgb({red},{green},{blue});')
 
+    # ___________Функции_работы_с_цветами_END________________
+
+    def __change_draw_obj(self):
+        """
+        Вспомогательная функция:
+        - нельзя одновременно делать масштаб и измерять расстояние
+        """
+        self.draw_point.clear()  # очистим координаты
+
+        if self.draw_type_act.isChecked():
+            self.draw_type_act.setChecked(False)
+        # Если в таблице сторок нет, то запретить запоминать координаты
+        if self.row_ind_in_data_grid == None:
+            self.draw_obj.setChecked(False)
 
     def is_action_valid(self):
         """
@@ -892,5 +922,12 @@ class Painter(QMainWindow):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setStyle(QStyleFactory.create('Fusion'))
+    locale = 'ru_RU'
+    qt_translator = QTranslator(app)
+    qt_translator.load('{}/qtbase_{}.qm'.format(I18N_QT_PATH, locale))
+    app_translator = QTranslator(app)
+    app_translator.load('{}/{}.qm'.format(I18N_QT_PATH, locale))
+    app.installTranslator(qt_translator)
+    app.installTranslator(app_translator)
     window = Painter()
     app.exec_()

@@ -17,7 +17,7 @@ import sys
 import time
 from pathlib import Path
 
-from PySide2.QtCore import QRectF, Qt, QModelIndex, QTranslator
+from PySide2.QtCore import QRectF, Qt, QModelIndex, QTranslator, QObject, QRunnable, QThreadPool, QTimer, Signal
 from PySide2.QtWidgets import (
     QApplication,
     QLabel,
@@ -55,6 +55,33 @@ from client import client
 
 I18N_QT_PATH = str(os.path.join(os.path.abspath('.'), 'i18n'))
 
+
+# Многопоточка
+class WorkerSignals(QObject):
+    finished = Signal()
+    error = Signal(str)
+    result = Signal(dict)
+
+
+class Worker(QRunnable):
+    def __init__(self, iterations=2):
+        super().__init__()
+        self.signals = WorkerSignals()
+        self.iterations = iterations
+
+    def run(self):
+        try:
+            time.sleep(2)
+            n= 4
+            v = 5
+
+        except Exception as e:
+            self.signals.error.emit(str(e))
+        else:
+            self.signals.finished.emit()
+            self.signals.result.emit({"n": n, "value": v})
+
+# Класс рисования координат объектов
 class Object_point(QGraphicsItem):
     def __init__(self, thickness):
         super().__init__()
@@ -374,6 +401,18 @@ class Painter(QMainWindow):
         plan_del.setStatusTip('Удалить изображение плана c объекта')
         # plan_del.triggered.connect(self.plan_del)
         plan_menu.addAction(plan_del)
+        # Рисование (меню)
+        paint_menu = QMenu('Рисовать', self)
+        paint_menu.setIcon(self.main_ico)
+        paint_all_object = QAction(self.main_ico, 'Все объекты', self)
+        paint_all_object.setStatusTip('Рисовать все объекты')
+        paint_all_object.triggered.connect(self.draw_all_object)
+        paint_menu.addAction(paint_all_object)
+        paint_one_object = QAction(self.main_ico, 'Один объект', self)
+        paint_one_object.setStatusTip('Рисовать один объект')
+        # paint_all_object.triggered.connect(self.database_create)
+        paint_menu.addAction(paint_one_object)
+
 
         # Меню приложения (верхняя плашка)
         menubar = self.menuBar()
@@ -381,6 +420,8 @@ class Painter(QMainWindow):
         file_menu.addMenu(db_menu)
         plans_menu = menubar.addMenu('План')
         plans_menu.addMenu(plan_menu)
+        paints_menu = menubar.addMenu('Рисовать')
+        paints_menu.addMenu(paint_menu)
 
         # ___________5_END________________
 
@@ -508,6 +549,7 @@ class Painter(QMainWindow):
 
     # ___________Функции_с_ген.планом_END________________
 
+    # ___________Функции_работы_со_сценой_START________________
     def scene_press_event(self, event):
         # проверим ключ на сервере
         self.check_key = client.Client().check_key()
@@ -619,6 +661,8 @@ class Painter(QMainWindow):
                     self.draw_point.clear()
                 else:
                     self.draw_obj.setChecked(False)
+
+    # ___________Функции_со_сценой_END________________
 
     # ___________Функции_отрисовки_объектов_на_ген.плане_START________________
     def del_all_item(self):
@@ -847,6 +891,14 @@ class Painter(QMainWindow):
         btn.setStyleSheet(f'background: rgb({red},{green},{blue});')
 
     # ___________Функции_работы_с_цветами_END________________
+
+    def draw_all_object(self):
+        # Проверки
+        self.is_action_valid()
+        print('Можно рисовать')
+        qpixmap = client.Client().server_get_qpixmap(data=[1,1,1,1,1])
+        print(qpixmap)
+
 
     def __change_draw_obj(self):
         """

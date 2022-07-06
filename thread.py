@@ -12,7 +12,7 @@ from PySide2.QtWidgets import (
     QWidget,
 )
 
-
+# Многопоточка
 class WorkerSignals(QObject):
     finished = Signal()
     error = Signal(str)
@@ -33,7 +33,6 @@ class Worker(QRunnable):
 
         except Exception as e:
             self.signals.error.emit(str(e))
-
         else:
             self.signals.finished.emit()
             self.signals.result.emit({"n": n, "value": v})

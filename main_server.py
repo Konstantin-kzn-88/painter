@@ -1,6 +1,7 @@
 import socketserver
 import json
 from server import geom
+from server import draw
 
 class ThredingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
@@ -29,6 +30,7 @@ class Painter_server(socketserver.BaseRequestHandler):
         #      0 - проверка ключа
         #      1 - расстояние между 2 точками
         #      2 - площадь многоугольника
+        #      3 - рисование зон
 
         answer = 'error'
         # Ключ
@@ -44,10 +46,15 @@ class Painter_server(socketserver.BaseRequestHandler):
         elif num_direction == 1:
             data = [float(i) for i in data]
             answer = geom.lenght_for_line(data)
-
+        # площадь
         elif num_direction == 2:
             data = [float(i) for i in data]
             answer = geom.area_for_poligon(data)
+        #  зоны
+        elif num_direction == 3:
+            draw.Data_draw().draw_zone(['test',],('test',))
+            print(data)
+            answer = "QPixmap"
         else:
             answer = 'error'
         print(answer, "answer")

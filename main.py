@@ -305,12 +305,12 @@ class Painter(QMainWindow):
         self.del_last_coordinate = QPushButton("")
         self.del_last_coordinate.setToolTip('Удалить последнюю координату')
         self.del_last_coordinate.setIcon(self.del_one_ico)
-        # self.del_last_coordinate.clicked.connect(self.delete_last_coordinate)
+        self.del_last_coordinate.clicked.connect(self.delete_last_coordinate)
 
         self.del_all_coordinate = QPushButton("")
         self.del_all_coordinate.setToolTip('Удалить все координаты')
         self.del_all_coordinate.setIcon(self.clear_ico)
-        # self.del_all_coordinate.clicked.connect(self.delete_all_coordinates)
+        self.del_all_coordinate.clicked.connect(self.delete_all_coordinates)
 
         self.save_table = QPushButton("Сохранить")
         self.save_table.setToolTip('Сохранить объекты в базу данных')
@@ -607,7 +607,7 @@ class Painter(QMainWindow):
                     self.draw_point.extend(eval(self.table_data.item(self.row_ind_in_data_grid,
                                                                      self.table_data.columnCount() - 1).text()))
                     self.draw_point.append(str(event.scenePos().x()))  # замеряем координаты клика
-                    self.draw_point.append(str(event.scenePos().y()))  # и запсываем в data_draw_point
+                    self.draw_point.append(str(event.scenePos().y()))  # и запсываем в draw_point
 
                     widget_item_for_table = QTableWidgetItem(str(self.draw_point))
                     self.table_data.setItem(self.row_ind_in_data_grid,
@@ -769,7 +769,6 @@ class Painter(QMainWindow):
             widget_item_for_table = QTableWidgetItem(str(data_for_copy[j]))
             self.table_data.setItem(self.table_data.rowCount() - 1, j, widget_item_for_table)
 
-    # ___________Функции_работы_с_таблицей_END________________
 
     def get_index_in_table(self, index):
 
@@ -789,6 +788,48 @@ class Painter(QMainWindow):
             self.draw_all_item(self.draw_point)
             # очистим список координат для отрисовки
             self.draw_point.clear()
+            
+    def delete_last_coordinate(self):
+        # Удалить все линии и точки с ген.плана
+        self.del_all_item()
+        if self.row_ind_in_data_grid is not None:
+            # Если ячейка крайнего столбца не пуста
+            if self.table_data.item(self.row_ind_in_data_grid,
+                                    self.table_data.columnCount() - 1) is not None:
+                # очистим список координат для отрисовки
+                self.draw_point.clear()
+                # считаем кооординаты
+                self.draw_point.extend(eval(self.table_data.item(self.row_ind_in_data_grid,
+                                                                      self.table_data.columnCount() - 1).text()))
+                # Удалим последнюю точку (х,у)
+                self.draw_point = self.draw_point[:-2]
+                # отрисуем все точки
+                self.draw_all_item(self.draw_point)
+                # Запишем новые координаты после удаления в таблицу
+                widget_item_for_table = QTableWidgetItem(str(self.draw_point))
+                self.table_data.setItem(self.row_ind_in_data_grid,
+                                        self.table_data.columnCount() - 1,
+                                        widget_item_for_table)
+                # очистим список координат для отрисовки
+                self.draw_point.clear()
+
+    def delete_all_coordinates(self):
+        # Удалить все линии и точки с ген.плана
+        self.del_all_item()
+        if self.row_ind_in_data_grid is not None:
+            # Если ячейка крайнего столбца не пуста
+            if self.table_data.item(self.row_ind_in_data_grid,
+                                    self.table_data.columnCount() - 1) is not None:
+                # очистим список координат для отрисовки
+                self.draw_point.clear()
+                # Запишем пустые координаты после удаления в таблицу
+                widget_item_for_table = QTableWidgetItem(str([]))
+                self.table_data.setItem(self.row_ind_in_data_grid,
+                                        self.table_data.columnCount() - 1,
+                                        widget_item_for_table)
+    # ___________Функции_работы_с_таблицей_END________________
+
+
 
     def is_action_valid(self):
         """

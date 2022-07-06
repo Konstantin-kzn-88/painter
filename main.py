@@ -896,7 +896,17 @@ class Painter(QMainWindow):
         # Проверки
         self.is_action_valid()
         print('Можно рисовать')
-        qpixmap = client.Client().server_get_qpixmap(data=[1,1,1,1,1])
+        # 1. Получим данные из таблицы
+        data = self.get_data_in_table()
+        if len(data) == 0: # если в таблице нет объектов
+            return
+
+        # 2. Определим размер сцены
+        width = self.scene.width()
+        height = self.scene.height()
+        data.append((width,height))
+        # 2. Отправим данные на сервер
+        qpixmap = client.Client().server_get_qpixmap(data)
         print(qpixmap)
 
 

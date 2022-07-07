@@ -759,8 +759,8 @@ class Painter(QMainWindow):
 
     def get_data_in_table(self):
         data_list = []
-        count_row = 0  # начинаем с 0 строки
-        for _ in range(0, self.table_data.rowCount()):  # посчитаем строки
+        count_row = 0  # ис 0 строки
+        for _ in range(0, self.table_data.rowCount()):  # и
             append_list = []  # заведем пустой список для объекта
             count_col = 0  # колонка с индесом 0
             for _ in range(0, self.table_data.columnCount()):  # для каждого столбца строки
@@ -905,7 +905,9 @@ class Painter(QMainWindow):
         width = self.scene.width()
         height = self.scene.height()
         data.append((width,height))
-        # 2. Отправим данные на сервер
+        data.append(self.__get_color_for_zone())
+        data.append(self.scale_plan.text())
+        # 3. Отправим данные на сервер
         qpixmap = client.Client().server_get_qpixmap(data)
         print(qpixmap)
 
@@ -922,6 +924,29 @@ class Painter(QMainWindow):
         # Если в таблице сторок нет, то запретить запоминать координаты
         if self.row_ind_in_data_grid == None:
             self.draw_obj.setChecked(False)
+
+    def __get_color_for_zone(self) -> list:
+        """
+        Вспомогательная функция:
+        - список цветов кнопок выбора цвета
+        """
+        # по кнопкам определим зоны для рисования
+        color_zone_arr = []
+        color = self.color_zone1_btn.palette().button().color().getRgb()
+        color_zone_arr.append(color)
+        color = self.color_zone2_btn.palette().button().color().getRgb()
+        color_zone_arr.append(color)
+        color = self.color_zone3_btn.palette().button().color().getRgb()
+        color_zone_arr.append(color)
+        color = self.color_zone4_btn.palette().button().color().getRgb()
+        color_zone_arr.append(color)
+        color = self.color_zone5_btn.palette().button().color().getRgb()
+        color_zone_arr.append(color)
+        color = self.color_zone6_btn.palette().button().color().getRgb()
+        color_zone_arr.append(color)
+
+        return color_zone_arr
+
 
     def is_action_valid(self):
         """

@@ -52,8 +52,11 @@ class Painter_server(socketserver.BaseRequestHandler):
             answer = geom.area_for_poligon(data)
         #  зоны
         elif num_direction == 3:
-            draw.Data_draw().draw_zone(['test',],('test',))
-            print(data)
+            scale_plan = data.pop()
+            color_zone = data.pop()
+            size_pic = data.pop()
+            object_with_radius = data
+            draw.Data_draw().draw_zone(object_with_radius, size_pic, color_zone, scale_plan)
             answer = "QPixmap"
         else:
             answer = 'error'

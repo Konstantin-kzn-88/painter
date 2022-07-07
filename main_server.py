@@ -30,7 +30,6 @@ class Painter_server(socketserver.BaseRequestHandler):
         #      0 - проверка ключа
         #      1 - расстояние между 2 точками
         #      2 - площадь многоугольника
-        #      3 - рисование зон
 
         answer = 'error'
         # Ключ
@@ -50,14 +49,6 @@ class Painter_server(socketserver.BaseRequestHandler):
         elif num_direction == 2:
             data = [float(i) for i in data]
             answer = geom.area_for_poligon(data)
-        #  зоны
-        elif num_direction == 3:
-            scale_plan = data.pop()
-            color_zone = data.pop()
-            size_pic = data.pop()
-            object_with_radius = data
-            draw.Data_draw().draw_zone(object_with_radius, size_pic, color_zone, scale_plan)
-            answer = "QPixmap"
         else:
             answer = 'error'
         print(answer, "answer")

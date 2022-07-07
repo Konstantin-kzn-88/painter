@@ -1,7 +1,6 @@
 import socketserver
 import json
 from server import geom
-from server import draw
 
 class ThredingTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
@@ -34,13 +33,12 @@ class Painter_server(socketserver.BaseRequestHandler):
         answer = 'error'
         # Ключ
         if num_direction == 0:
-            with open('keys.txt', 'r') as file:
-                for line in file:
-                    if str(data) == str(line).splitlines():
-                        answer = 'True'
-                        break
-                    else:
-                        answer = 'False'
+            with open('keys.txt') as f:
+                if data in f.read():
+                    answer = 'True'
+                else:
+                    answer = 'False'
+
         # Расстояние
         elif num_direction == 1:
             data = [float(i) for i in data]

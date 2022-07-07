@@ -52,7 +52,7 @@ from PySide2.QtGui import QImage, QIcon, QPixmap, QFont, QColor, QPainter, QPen,
 # db
 from data_base import class_db
 from client import client
-from draw_for_calculator import class_data_draw
+
 
 I18N_QT_PATH = str(os.path.join(os.path.abspath('.'), 'i18n'))
 
@@ -552,18 +552,8 @@ class Painter(QMainWindow):
 
     # ___________Функции_работы_со_сценой_START________________
     def scene_press_event(self, event):
-        # проверим ключ на сервере
-        self.check_key = client.Client().check_key()
-        if not self.check_key:
-            msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Warning)
-            msg.setWindowTitle("Информация")
-            msg.setText("Ключ на сервере отсутсвует!")
-            msg.exec()
-            self.draw_type_act.setChecked(False)
-            self.draw_obj.setChecked(False)
-            self.__clear_scale()
-            return
+        # Проверки
+        self.is_action_valid()
         # Проверим наличие ген.плана
         if self.plan_list.currentText() != '--Нет ген.планов--':
             # Проверим нажатие кнопки draw_type_act,
@@ -893,25 +883,6 @@ class Painter(QMainWindow):
 
     # ___________Функции_работы_с_цветами_END________________
 
-    def draw_all_object(self):
-        # Проверки
-        self.is_action_valid()
-        print('Можно рисовать')
-        # 1. Получим данные из таблицы
-        data = self.get_data_in_table()
-        if len(data) == 0: # если в таблице нет объектов
-            return
-
-        # 2. Определим размер сцены
-        width = self.scene.width()
-        height = self.scene.height()
-        data.append((width,height))
-        data.append(self.__get_color_for_zone())
-        data.append(self.scale_plan.text())
-        # 3. Отправим данные на сервер
-        qpixmap = client.Client().server_get_qpixmap(data)
-        print(qpixmap)
-
 
     def __change_draw_obj(self):
         """
@@ -978,7 +949,7 @@ class Painter(QMainWindow):
             return
 
         # 4. Есть ли подключение к серверу
-        if not self.check_key:
+        if self.check_key == 'False':
             msg = QMessageBox(self)
             msg.setIcon(QMessageBox.Warning)
             msg.setWindowTitle("Информация")
@@ -1005,141 +976,134 @@ class Painter(QMainWindow):
                     msg.exec()
                     return
 
-    def draw_from_data(self, data: list, fill_thickness: int = 0):
+    def draw_all_object(self):
         '''
         Функция отрисовки на ген плане зон поражения.
-        :param data список вида [[1,2,3,4,5,6],[1,2,3,4,5,6]..n]
-                    количество списков = количетву отрисовываемых объектов .
-
         '''
-
-        # print(data)
         # 1. Проверки
         # 1.1. Проверки на заполненность данных
         self.is_action_valid()
-        # 1.2. Список данных должен быть не пустой
-        if len(data) == 0:
-            return
 
         # 2. Получить данные
-        # 2.1. О масштабе
+        # 2.1. О масштабе и данные таблицы
         scale_plan = float(self.scale_plan.text())
+        data = self.get_data_in_table()
         # 2.2. Получить координаты и типы объектов
-        type_obj = []
-        coordinate_obj = []
-        for row in range(0, self.table_data.rowCount()):  # получим типы объектов
-            type_obj.append(int(self.table_data.item(row, 13).text()))
-            coordinate_obj.append(eval(self.table_data.item(row,
-                                                            self.table_data.columnCount() - 1).text()))
+        coordinate_obj = [eval(i.pop()) for i in data]
+        coordinate_obj = [[float(y) for y in i] for i in coordinate_obj]
+        type_obj = [int(i.pop()) for i in data]
+        print(coordinate_obj)
+        print(type_obj)
 
         # 3. Нарисовать
         # 3.1. Определим все цвета зон покнопкам
-        color_zone_arr = self.get_color_for_zone()
+        color_zone_arr = self.__get_color_for_zone()
+        print(color_zone_arr)
 
-        # 3.2. Отрисовка зон
-        # На основе исходной картинки создадим QImage и QPixmap
-        _, image_data = class_db.Data_base(self.db_name, self.db_path).get_plan_in_db(self.plan_list.currentText())
-        qimg = QImage.fromData(image_data)
-        pixmap = QPixmap.fromImage(qimg)
-        # создадим соразмерный pixmap_zone и сделаем его прозрачным
-        pixmap_zone = QPixmap(pixmap.width(), pixmap.height())
-        pixmap_zone.fill(QColor(255, 255, 255, 255))
-        # Создадим QPainter
-        qp = QPainter(pixmap_zone)
-        # Начнем рисование
-        qp.begin(pixmap_zone)
-
-        for zone_index in range(-1, -7, -1):
-            i = 0  # итератор для объектов
-            k = 0  # итератор для объектов без заливки
-            for obj in type_obj:
-                # # начинаем рисовать с последнего цвета
-                color = color_zone_arr[zone_index]
-                zone = math.fabs(float(data[i][zone_index]) * scale_plan * 2)  # т.к. на вход радиус, а нужен диаметр
-                # зона может быть 0 тогда ничего рисовать не надо
-                if zone == 0:
-                    continue
-
-                # определим ручку и кисточку
-                pen = QPen(QColor(color[0], color[1], color[2], color[3]), zone, QtCore.Qt.SolidLine)
-                brush = QBrush(QColor(color[0], color[1], color[2], color[3]))
-                # со сглаживаниями
-                pen.setJoinStyle(Qt.RoundJoin)
-                # закругленный концы
-                pen.setCapStyle(Qt.RoundCap)
-                qp.setPen(pen)
-                qp.setBrush(brush)
-
-                # возьмем координаты оборудования
-                obj_coord = self.get_polygon(coordinate_obj[i])
-                if len(obj_coord) >= 2:  # координаты можно преобразовать в полигон
-
-                    if obj == 0:
-                        # линейн. получим полигон
-                        qp.drawPolyline(obj_coord)
-                    else:
-                        # стац. об. получим полигон
-                        qp.drawPolyline(obj_coord)
-                        qp.drawPolygon(obj_coord, Qt.OddEvenFill)
-                else:  # не получается полигон, значит точка
-                    pen_point = QPen(QColor(color[0], color[1], color[2], color[3]), 1, QtCore.Qt.SolidLine)
-                    qp.setPen(pen_point)
-                    point = QPoint(int(float(coordinate_obj[i][0])), int(float(coordinate_obj[i][1])))
-                    qp.drawEllipse(point, zone / 2, zone / 2)  # т.к. нужен радиус
-
-                i += 1  # следующий объект
-
-            # Рисуем прозрачные
-
-            if fill_thickness != 0:
-                for obj in reversed(type_obj):
-                    zone_without_fill = math.fabs(
-                        float(data[k][zone_index]) * scale_plan * 2) - fill_thickness
-
-                    # определим ручку и кисточку
-                    pen_without_fill = QPen(QColor(255, 255, 255, 255), zone_without_fill,
-                                                  Qt.SolidLine)
-                    brush_without_fill = QBrush(QColor(255, 255, 255, 255))
-                    # со сглаживаниями
-                    pen_without_fill.setJoinStyle(Qt.RoundJoin)
-                    # закругленный концы
-                    pen_without_fill.setCapStyle(Qt.RoundCap)
-                    qp.setPen(pen_without_fill)
-                    qp.setBrush(brush_without_fill)
-
-                    # возьмем координаты оборудования
-                    obj_coord = self.get_polygon(coordinate_obj[k])
-                    if len(obj_coord) >= 2:  # координаты можно преобразовать в полигон
-
-                        if obj == 0:
-                            # линейн. получим полигон
-                            qp.drawPolyline(obj_coord)
-                        else:
-                            # стац. об. получим полигон
-                            qp.drawPolyline(obj_coord)
-                            qp.drawPolygon(obj_coord, Qt.OddEvenFill)
-                    else:  # не получается полигон, значит точка
-                        pen_point = QPen(QColor(255, 255, 255, 255), 1,
-                                               Qt.SolidLine)
-                        qp.setPen(pen_point)
-                        point = QPoint(int(float(coordinate_obj[k][0])), int(float(coordinate_obj[k][1])))
-                        qp.drawEllipse(point, zone_without_fill / 2, zone_without_fill / 2)  # т.к. нужен радиус
-
-                    k += 1  # следующий объект
-
-        # Завершить рисование
-        qp.end()
-        # удалить белый фон (при наличии)
-        pixmap_zone = self.__del_white_pixel(pixmap_zone)
-        # Положим одну картинку на другую
-        painter = QPainter(pixmap)
-        painter.begin(pixmap)
-        painter.setOpacity(self.opacity.value())
-        painter.drawPixmap(0, 0, pixmap_zone)
-        painter.end()
-        # Разместим на сцене pixmap с pixmap_zone
-        self.scene.addPixmap(pixmap)
-        self.scene.setSceneRect(QRectF(pixmap.rect()))
+        # # 3.2. Отрисовка зон
+        # # На основе исходной картинки создадим QImage и QPixmap
+        # _, image_data = class_db.Data_base(self.db_name, self.db_path).get_plan_in_db(self.plan_list.currentText())
+        # qimg = QImage.fromData(image_data)
+        # pixmap = QPixmap.fromImage(qimg)
+        # # создадим соразмерный pixmap_zone и сделаем его прозрачным
+        # pixmap_zone = QPixmap(pixmap.width(), pixmap.height())
+        # pixmap_zone.fill(QColor(255, 255, 255, 255))
+        # # Создадим QPainter
+        # qp = QPainter(pixmap_zone)
+        # # Начнем рисование
+        # qp.begin(pixmap_zone)
+        #
+        # for zone_index in range(-1, -7, -1):
+        #     i = 0  # итератор для объектов
+        #     k = 0  # итератор для объектов без заливки
+        #     for obj in type_obj:
+        #         # # начинаем рисовать с последнего цвета
+        #         color = color_zone_arr[zone_index]
+        #         zone = math.fabs(float(data[i][zone_index]) * scale_plan * 2)  # т.к. на вход радиус, а нужен диаметр
+        #         # зона может быть 0 тогда ничего рисовать не надо
+        #         if zone == 0:
+        #             continue
+        #
+        #         # определим ручку и кисточку
+        #         pen = QPen(QColor(color[0], color[1], color[2], color[3]), zone, QtCore.Qt.SolidLine)
+        #         brush = QBrush(QColor(color[0], color[1], color[2], color[3]))
+        #         # со сглаживаниями
+        #         pen.setJoinStyle(Qt.RoundJoin)
+        #         # закругленный концы
+        #         pen.setCapStyle(Qt.RoundCap)
+        #         qp.setPen(pen)
+        #         qp.setBrush(brush)
+        #
+        #         # возьмем координаты оборудования
+        #         obj_coord = self.get_polygon(coordinate_obj[i])
+        #         if len(obj_coord) >= 2:  # координаты можно преобразовать в полигон
+        #
+        #             if obj == 0:
+        #                 # линейн. получим полигон
+        #                 qp.drawPolyline(obj_coord)
+        #             else:
+        #                 # стац. об. получим полигон
+        #                 qp.drawPolyline(obj_coord)
+        #                 qp.drawPolygon(obj_coord, Qt.OddEvenFill)
+        #         else:  # не получается полигон, значит точка
+        #             pen_point = QPen(QColor(color[0], color[1], color[2], color[3]), 1, QtCore.Qt.SolidLine)
+        #             qp.setPen(pen_point)
+        #             point = QPoint(int(float(coordinate_obj[i][0])), int(float(coordinate_obj[i][1])))
+        #             qp.drawEllipse(point, zone / 2, zone / 2)  # т.к. нужен радиус
+        #
+        #         i += 1  # следующий объект
+        #
+        #     # Рисуем прозрачные
+        #
+        #     if fill_thickness != 0:
+        #         for obj in reversed(type_obj):
+        #             zone_without_fill = math.fabs(
+        #                 float(data[k][zone_index]) * scale_plan * 2) - fill_thickness
+        #
+        #             # определим ручку и кисточку
+        #             pen_without_fill = QPen(QColor(255, 255, 255, 255), zone_without_fill,
+        #                                           Qt.SolidLine)
+        #             brush_without_fill = QBrush(QColor(255, 255, 255, 255))
+        #             # со сглаживаниями
+        #             pen_without_fill.setJoinStyle(Qt.RoundJoin)
+        #             # закругленный концы
+        #             pen_without_fill.setCapStyle(Qt.RoundCap)
+        #             qp.setPen(pen_without_fill)
+        #             qp.setBrush(brush_without_fill)
+        #
+        #             # возьмем координаты оборудования
+        #             obj_coord = self.get_polygon(coordinate_obj[k])
+        #             if len(obj_coord) >= 2:  # координаты можно преобразовать в полигон
+        #
+        #                 if obj == 0:
+        #                     # линейн. получим полигон
+        #                     qp.drawPolyline(obj_coord)
+        #                 else:
+        #                     # стац. об. получим полигон
+        #                     qp.drawPolyline(obj_coord)
+        #                     qp.drawPolygon(obj_coord, Qt.OddEvenFill)
+        #             else:  # не получается полигон, значит точка
+        #                 pen_point = QPen(QColor(255, 255, 255, 255), 1,
+        #                                        Qt.SolidLine)
+        #                 qp.setPen(pen_point)
+        #                 point = QPoint(int(float(coordinate_obj[k][0])), int(float(coordinate_obj[k][1])))
+        #                 qp.drawEllipse(point, zone_without_fill / 2, zone_without_fill / 2)  # т.к. нужен радиус
+        #
+        #             k += 1  # следующий объект
+        #
+        # # Завершить рисование
+        # qp.end()
+        # # удалить белый фон (при наличии)
+        # pixmap_zone = self.__del_white_pixel(pixmap_zone)
+        # # Положим одну картинку на другую
+        # painter = QPainter(pixmap)
+        # painter.begin(pixmap)
+        # painter.setOpacity(self.opacity.value())
+        # painter.drawPixmap(0, 0, pixmap_zone)
+        # painter.end()
+        # # Разместим на сцене pixmap с pixmap_zone
+        # self.scene.addPixmap(pixmap)
+        # self.scene.setSceneRect(QRectF(pixmap.rect()))
 
     def __del_white_pixel(self, pixmap):
 

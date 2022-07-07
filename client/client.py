@@ -16,7 +16,7 @@ import json
 from pathlib import Path
 import os
 
-KEY = '@v&#XST3kH-t9fZad69eN'
+KEY = 'bnd69eN'
 IP = '127.0.0.1'
 
 class Client(QtWidgets.QWidget):
@@ -55,7 +55,7 @@ class Client(QtWidgets.QWidget):
             msg.setText("Подключение к серверу отсутсвует!")
             msg.exec()
         if res != 'error':
-            return eval(res)
+            return str(res)
         else:
             return False
 

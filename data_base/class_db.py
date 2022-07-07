@@ -286,7 +286,6 @@ class Data_base(QtWidgets.QWidget):
         :param - scale_plan - масштаб плана
         :param - table_widget - QTableWidget
         """
-        self
         if self.db_path != '' and self.db_name != '':
             # 1. Считаем данные из таблицы
             data_list = []

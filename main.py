@@ -47,7 +47,7 @@ from PySide2.QtWidgets import (
     QColorDialog,
 )
 
-from PySide2.QtGui import QImage, QIcon, QPixmap, QFont, QColor, QPainter, QPen, QBrush
+from PySide2.QtGui import QImage, QIcon, QPixmap, QFont, QColor, QPainter, QPen, QBrush, QPolygon
 
 
 # Классы проекта
@@ -995,66 +995,71 @@ class Painter(QMainWindow):
         coordinate_obj = [eval(i.pop()) for i in data]
         coordinate_obj = [[float(y) for y in i] for i in coordinate_obj]
         type_obj = [int(i.pop()) for i in data]
-        print(coordinate_obj)
-        print(type_obj)
+        # print(coordinate_obj)
+        # print(type_obj)
 
         # 3. Нарисовать
         # 3.1. Определим все цвета зон покнопкам
         color_zone_arr = self.__get_color_for_zone()
-        print(color_zone_arr)
+        # print(color_zone_arr)
 
-        # # 3.2. Отрисовка зон
-        # # На основе исходной картинки создадим QImage и QPixmap
-        # _, image_data = class_db.Data_base(self.db_name, self.db_path).get_plan_in_db(self.plan_list.currentText())
-        # qimg = QImage.fromData(image_data)
-        # pixmap = QPixmap.fromImage(qimg)
-        # # создадим соразмерный pixmap_zone и сделаем его прозрачным
-        # pixmap_zone = QPixmap(pixmap.width(), pixmap.height())
-        # pixmap_zone.fill(QColor(255, 255, 255, 255))
-        # # Создадим QPainter
-        # qp = QPainter(pixmap_zone)
-        # # Начнем рисование
-        # qp.begin(pixmap_zone)
+        # 3.2. Отрисовка зон
+        # На основе исходной картинки создадим QImage и QPixmap
+        _, image_data = class_db.Data_base(self.db_name, self.db_path).get_plan_in_db(self.plan_list.currentText())
+        qimg = QImage.fromData(image_data)
+        pixmap = QPixmap.fromImage(qimg)
+        # создадим соразмерный pixmap_zone и сделаем его прозрачным
+        pixmap_zone = QPixmap(pixmap.width(), pixmap.height())
+        print("pixmap.width(), pixmap.height()",pixmap.width(), pixmap.height())
+        pixmap_zone.fill(QColor(255, 255, 255, 255))
+        # Создадим QPainter
+        qp = QPainter(pixmap_zone)
+        # Начнем рисование
+        qp.begin(pixmap_zone)
         #
-        # for zone_index in range(-1, -7, -1):
-        #     i = 0  # итератор для объектов
-        #     k = 0  # итератор для объектов без заливки
-        #     for obj in type_obj:
-        #         # # начинаем рисовать с последнего цвета
-        #         color = color_zone_arr[zone_index]
-        #         zone = math.fabs(float(data[i][zone_index]) * scale_plan * 2)  # т.к. на вход радиус, а нужен диаметр
-        #         # зона может быть 0 тогда ничего рисовать не надо
-        #         if zone == 0:
-        #             continue
-        #
-        #         # определим ручку и кисточку
-        #         pen = QPen(QColor(color[0], color[1], color[2], color[3]), zone, QtCore.Qt.SolidLine)
-        #         brush = QBrush(QColor(color[0], color[1], color[2], color[3]))
-        #         # со сглаживаниями
-        #         pen.setJoinStyle(Qt.RoundJoin)
-        #         # закругленный концы
-        #         pen.setCapStyle(Qt.RoundCap)
-        #         qp.setPen(pen)
-        #         qp.setBrush(brush)
-        #
-        #         # возьмем координаты оборудования
-        #         obj_coord = self.get_polygon(coordinate_obj[i])
-        #         if len(obj_coord) >= 2:  # координаты можно преобразовать в полигон
-        #
-        #             if obj == 0:
-        #                 # линейн. получим полигон
-        #                 qp.drawPolyline(obj_coord)
-        #             else:
-        #                 # стац. об. получим полигон
-        #                 qp.drawPolyline(obj_coord)
-        #                 qp.drawPolygon(obj_coord, Qt.OddEvenFill)
-        #         else:  # не получается полигон, значит точка
-        #             pen_point = QPen(QColor(color[0], color[1], color[2], color[3]), 1, QtCore.Qt.SolidLine)
-        #             qp.setPen(pen_point)
-        #             point = QPoint(int(float(coordinate_obj[i][0])), int(float(coordinate_obj[i][1])))
-        #             qp.drawEllipse(point, zone / 2, zone / 2)  # т.к. нужен радиус
-        #
-        #         i += 1  # следующий объект
+        for zone_index in range(-1, -7, -1):
+            i = 0  # итератор для объектов
+            # k = 0  # итератор для объектов без заливки
+            for obj in type_obj:
+                # # начинаем рисовать с последнего цвета
+                color = color_zone_arr[zone_index]
+                zone = math.fabs(float(data[i][zone_index]) * scale_plan * 2)  # т.к. на вход радиус, а нужен диаметр
+                # зона может быть 0 тогда ничего рисовать не надо
+                if zone == 0:
+                    continue
+
+                # print('color', color )
+                # print('zone', zone)
+
+                # определим ручку и кисточку
+                pen = QPen(QColor(color[0], color[1], color[2], color[3]), zone, Qt.SolidLine)
+                brush = QBrush(QColor(color[0], color[1], color[2], color[3]))
+                # со сглаживаниями
+                pen.setJoinStyle(Qt.RoundJoin)
+                # закругленный концы
+                pen.setCapStyle(Qt.RoundCap)
+                qp.setPen(pen)
+                qp.setBrush(brush)
+                #
+                # возьмем координаты оборудования
+                obj_coord = self.get_polygon(coordinate_obj[i])
+                # print(obj_coord,'obj_coord')
+                if len(obj_coord) >= 2:  # координаты можно преобразовать в полигон
+
+                    if obj == 0:
+                        # линейн. получим полигон
+                        qp.drawPolyline(obj_coord)
+                    else:
+                        # стац. об. получим полигон
+                        qp.drawPolyline(obj_coord)
+                        qp.drawPolygon(obj_coord, Qt.OddEvenFill)
+                else:  # не получается полигон, значит точка
+                    pen_point = QPen(QColor(color[0], color[1], color[2], color[3]), 1, Qt.SolidLine)
+                    qp.setPen(pen_point)
+                    point = QPoint(int(float(coordinate_obj[i][0])), int(float(coordinate_obj[i][1])))
+                    qp.drawEllipse(point, zone / 2, zone / 2)  # т.к. нужен радиус
+
+                i += 1  # следующий объект
         #
         #     # Рисуем прозрачные
         #
@@ -1095,18 +1100,18 @@ class Painter(QMainWindow):
         #             k += 1  # следующий объект
         #
         # # Завершить рисование
-        # qp.end()
-        # # удалить белый фон (при наличии)
-        # pixmap_zone = self.__del_white_pixel(pixmap_zone)
-        # # Положим одну картинку на другую
-        # painter = QPainter(pixmap)
-        # painter.begin(pixmap)
-        # painter.setOpacity(self.opacity.value())
-        # painter.drawPixmap(0, 0, pixmap_zone)
-        # painter.end()
-        # # Разместим на сцене pixmap с pixmap_zone
-        # self.scene.addPixmap(pixmap)
-        # self.scene.setSceneRect(QRectF(pixmap.rect()))
+        qp.end()
+        # удалить белый фон (при наличии)
+        pixmap_zone = self.__del_white_pixel(pixmap_zone)
+        # Положим одну картинку на другую
+        painter = QPainter(pixmap)
+        painter.begin(pixmap)
+        painter.setOpacity(0.5)
+        painter.drawPixmap(0, 0, pixmap_zone)
+        painter.end()
+        # Разместим на сцене pixmap с pixmap_zone
+        self.scene.addPixmap(pixmap)
+        self.scene.setSceneRect(QRectF(pixmap.rect()))
 
     def __del_white_pixel(self, pixmap):
 
@@ -1116,6 +1121,19 @@ class Painter(QMainWindow):
                     pixmap.setMask(pixmap.createMaskFromColor(QColor(250 + i, 250 + k, 250 + j)))
 
         return pixmap
+
+    # 7. На основе координат создает по QPoint QPolygon
+    def get_polygon(self, coordinate):
+        "На основе координат создает по QPoint QPolygon"
+        i = 0
+        points = []
+        while i < len(coordinate):
+            point = QPoint(int(float(coordinate[i])), int(float(coordinate[i + 1])))
+            points.append(point)
+            i += 2
+        polygon = QPolygon(points)
+
+        return polygon
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

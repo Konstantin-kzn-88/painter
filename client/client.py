@@ -16,7 +16,8 @@ import json
 from pathlib import Path
 import os
 
-KEY = 'bnd69eN'
+
+KEY = '@v&#XST3kH-t9fZad69eN'
 IP = '127.0.0.1'
 
 class Client(QtWidgets.QWidget):

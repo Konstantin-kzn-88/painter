@@ -16,6 +16,7 @@ import os
 import sys
 import time
 from pathlib import Path
+import json
 
 from PySide2.QtCore import QRectF, Qt, QModelIndex, QTranslator, QObject, QRunnable, QThreadPool, QTimer, Signal, QPoint
 from PySide2.QtWidgets import (
@@ -47,6 +48,7 @@ from PySide2.QtWidgets import (
 )
 
 from PySide2.QtGui import QImage, QIcon, QPixmap, QFont, QColor, QPainter, QPen, QBrush
+
 
 # Классы проекта
 # db
@@ -555,7 +557,7 @@ class Painter(QMainWindow):
         # Проверки
         self.is_action_valid()
         # Проверим наличие ген.плана
-        if self.plan_list.currentText() != '--Нет ген.планов--':
+        if self.plan_list.currentText() != '--Нет ген.планов--' and self.check_key:
             # Проверим нажатие кнопки draw_type_act,
             # что мы хотим определить
             # - масштаб
@@ -949,7 +951,8 @@ class Painter(QMainWindow):
             return
 
         # 4. Есть ли подключение к серверу
-        if self.check_key == 'False':
+        self.check_key = json.loads(client.Client().check_key()[2:-1].lower())
+        if self.check_key == False:
             msg = QMessageBox(self)
             msg.setIcon(QMessageBox.Warning)
             msg.setWindowTitle("Информация")

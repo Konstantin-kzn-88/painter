@@ -49,12 +49,10 @@ from PySide2.QtWidgets import (
 
 from PySide2.QtGui import QImage, QIcon, QPixmap, QFont, QColor, QPainter, QPen, QBrush, QPolygon
 
-
 # Классы проекта
 # db
 from data_base import class_db
 from client import client
-
 
 I18N_QT_PATH = str(os.path.join(os.path.abspath('.'), 'i18n'))
 
@@ -75,7 +73,7 @@ class Worker(QRunnable):
     def run(self):
         try:
             time.sleep(2)
-            n= 4
+            n = 4
             v = 5
 
         except Exception as e:
@@ -83,6 +81,7 @@ class Worker(QRunnable):
         else:
             self.signals.finished.emit()
             self.signals.result.emit({"n": n, "value": v})
+
 
 # Класс рисования координат объектов
 class Object_point(QGraphicsItem):
@@ -415,7 +414,6 @@ class Painter(QMainWindow):
         paint_one_object.setStatusTip('Рисовать один объект')
         # paint_all_object.triggered.connect(self.database_create)
         paint_menu.addAction(paint_one_object)
-
 
         # Меню приложения (верхняя плашка)
         menubar = self.menuBar()
@@ -885,7 +883,6 @@ class Painter(QMainWindow):
 
     # ___________Функции_работы_с_цветами_END________________
 
-
     def __change_draw_obj(self):
         """
         Вспомогательная функция:
@@ -1010,7 +1007,7 @@ class Painter(QMainWindow):
         pixmap = QPixmap.fromImage(qimg)
         # создадим соразмерный pixmap_zone и сделаем его прозрачным
         pixmap_zone = QPixmap(pixmap.width(), pixmap.height())
-        print("pixmap.width(), pixmap.height()",pixmap.width(), pixmap.height())
+        print("pixmap.width(), pixmap.height()", pixmap.width(), pixmap.height())
         pixmap_zone.fill(QColor(255, 255, 255, 255))
         # Создадим QPainter
         qp = QPainter(pixmap_zone)
@@ -1042,7 +1039,7 @@ class Painter(QMainWindow):
                 qp.setBrush(brush)
                 #
                 # возьмем координаты оборудования
-                obj_coord = self.get_polygon(coordinate_obj[i])
+                obj_coord = self.__get_polygon(coordinate_obj[i])
                 # print(obj_coord,'obj_coord')
                 if len(obj_coord) >= 2:  # координаты можно преобразовать в полигон
 
@@ -1080,7 +1077,7 @@ class Painter(QMainWindow):
         #             qp.setBrush(brush_without_fill)
         #
         #             # возьмем координаты оборудования
-        #             obj_coord = self.get_polygon(coordinate_obj[k])
+        #             obj_coord = self.__get_polygon(coordinate_obj[k])
         #             if len(obj_coord) >= 2:  # координаты можно преобразовать в полигон
         #
         #                 if obj == 0:
@@ -1122,8 +1119,7 @@ class Painter(QMainWindow):
 
         return pixmap
 
-    # 7. На основе координат создает по QPoint QPolygon
-    def get_polygon(self, coordinate):
+    def __get_polygon(self, coordinate: list):
         "На основе координат создает по QPoint QPolygon"
         i = 0
         points = []
@@ -1134,6 +1130,7 @@ class Painter(QMainWindow):
         polygon = QPolygon(points)
 
         return polygon
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

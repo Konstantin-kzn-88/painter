@@ -1020,9 +1020,8 @@ class Painter(QMainWindow):
         for zone_index in range(-1, -7, -1):
             i = 0  # итератор для объектов
             for obj in type_obj:
-                # # начинаем рисовать с последнего цвета
+                # начинаем рисовать с последнего цвета
                 color = color_zone_arr[zone_index]
-                # zone = math.fabs(float(data[i][zone_index]) * scale_plan * 2)  # т.к. на вход радиус, а нужен диаметр
                 zone = client.Client().server_get_zone(float(data[i][zone_index]), scale_plan)
                 # зона может быть 0 тогда ничего рисовать не надо
                 if zone == 0:

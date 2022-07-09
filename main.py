@@ -408,11 +408,12 @@ class Painter(QMainWindow):
         paint_menu.setIcon(self.main_ico)
         paint_all_object = QAction(self.main_ico, 'Все объекты', self)
         paint_all_object.setStatusTip('Рисовать все объекты')
-        paint_all_object.triggered.connect(self.draw_all_object)
+        paint_all_object.triggered.connect(lambda: self.draw_all_object(-1))
         paint_menu.addAction(paint_all_object)
         paint_one_object = QAction(self.main_ico, 'Один объект', self)
         paint_one_object.setStatusTip('Рисовать один объект')
-        # paint_all_object.triggered.connect(self.database_create)
+        paint_one_object.triggered.connect(
+            lambda: self.draw_all_object(self.row_ind_in_data_grid if self.row_ind_in_data_grid != None else -1))
         paint_menu.addAction(paint_one_object)
 
         # Меню приложения (верхняя плашка)
@@ -980,7 +981,7 @@ class Painter(QMainWindow):
                     msg.exec()
                     return
 
-    def draw_all_object(self):
+    def draw_all_object(self, row_index: int = -1):
         '''
         Функция отрисовки на ген плане зон поражения.
         '''
@@ -995,6 +996,11 @@ class Painter(QMainWindow):
         coordinate_obj = [eval(i.pop()) for i in data]
         coordinate_obj = [[float(y) for y in i] for i in coordinate_obj]
         type_obj = [int(i.pop()) for i in data]
+
+        if row_index != -1:
+            coordinate_obj = coordinate_obj[row_index:row_index + 1]
+            type_obj = type_obj[row_index:row_index + 1]
+
         # 3. Нарисовать
         # 3.1. Определим все цвета зон покнопкам
         color_zone_arr = self.__get_color_for_zone()

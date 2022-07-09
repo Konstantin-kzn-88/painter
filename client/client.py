@@ -102,12 +102,12 @@ class Client(QtWidgets.QWidget):
         else:
             return 0
 
-    def server_get_qpixmap(self, data: list):
+    def server_get_zone(self, zone: float, scale: float):
         try:
             server_call = 3
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((IP, 8888))
-            str_json =  json.dumps((server_call, data))
+            str_json =  json.dumps((server_call, [zone, scale]))
             sock.send(bytes(str_json, encoding='utf-8'))
             res = self.__recvall(sock)
             print(res, 'res')
@@ -119,6 +119,6 @@ class Client(QtWidgets.QWidget):
             msg.setText("Подключение к серверу отсутсвует!")
             msg.exec()
         if res != b'error':
-            return res
+            return float(res)
         else:
             return 0

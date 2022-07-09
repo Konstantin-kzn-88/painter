@@ -82,15 +82,12 @@ class Painter_server(socketserver.BaseRequestHandler):
         #      0 - проверка ключа
         #      1 - расстояние между 2 точками
         #      2 - площадь многоугольника
+        #      3 - получение зоны с учетом масштаба
 
         answer = 'error'
         # Ключ
-        print('data', data, type(data))
-        print('num_direction', num_direction, type(num_direction))
         if num_direction == 0:
-            print('data', data, type(data))
             if data in KEY:
-                print('data', data, type(data))
                 answer = True
             else:
                 answer = False
@@ -103,6 +100,11 @@ class Painter_server(socketserver.BaseRequestHandler):
         elif num_direction == 2:
             data = [float(i) for i in data]
             answer = geom.area_for_poligon(data)
+
+        elif num_direction == 3:
+            zone = data[0]
+            scale = data[1]
+            answer = geom.zone_with_scale(zone, scale)
         else:
             answer = 'error'
         print(answer, "answer")
@@ -111,7 +113,6 @@ class Painter_server(socketserver.BaseRequestHandler):
         self.request.sendall(bytes(str_json, encoding='utf-8'))
 
     def get_data_in_request(self, request: bytes):
-        print('get_data_in_request')
         try:
             request = json.loads(request)
             num_direction, data = request

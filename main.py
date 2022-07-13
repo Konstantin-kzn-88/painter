@@ -97,8 +97,10 @@ class Worker(QRunnable):
             # Создадим объект до которого идет измерение
             if len(self.obj_coord) > 2:
                 if self.type_obj != 0:  # линейный объект
+                    print('линейный')
                     obj = LineString(list(zip(self.obj_coord[0::2], self.obj_coord[1::2])))
                 else:
+                    print('стационарный')
                     obj = Polygon(list(zip(self.obj_coord[0::2], self.obj_coord[1::2])))
             else:
                 obj = Point(self.obj_coord[0],self.obj_coord[1])
@@ -112,6 +114,8 @@ class Worker(QRunnable):
                     if distance in dist_power:
                         ind = dist_power.index(distance)
                         zeors_array[x, y] = power[ind]
+                    if distance == 0:
+                        zeors_array[x, y] = max(power)
 
         except Exception as e:
             self.signals.error.emit(str(e))
@@ -175,8 +179,6 @@ class Painter(QMainWindow):
         # ж. Матрица heatmap'а
         self.heatmap = 0
 
-        # з. Количество запущенных потоков
-        self.num_pool = 0
 
     def set_ico(self):
         """
@@ -1198,8 +1200,6 @@ class Painter(QMainWindow):
             worker.signals.finished.connect(self.worker_complete)
             self.threadpool.start(worker)
             i += 1
-            self.num_pool += 1
-
 
 
 
@@ -1209,7 +1209,28 @@ class Painter(QMainWindow):
 
     def worker_complete(self):
         print("THREAD COMPLETE!")
-        self.num_pool -= 1
+        if self.threadpool.activeThreadCount() == 0:
+            # На основе исходной картинки создадим QImage и QPixmap
+            _, image_data = class_db.Data_base(self.db_name, self.db_path).get_plan_in_db(self.plan_list.currentText())
+            qimg = QImage.fromData(image_data)
+            pixmap = QPixmap.fromImage(qimg)
+            # создадим соразмерный pixmap_zone и сделаем его прозрачным
+            pixmap_zone = QPixmap(pixmap.width(), pixmap.height())
+            pixmap_zone.fill(QColor(255, 255, 255, 255))
+            # Начнем рисование
+            qimg_zone = pixmap_zone.toImage()
+            # Нарисуем тепловую карту
+            heat_map = self.show_heat_map(self.heatmap, pixmap.width(), pixmap.height(), qimg_zone)
+            pixmap_zone = QPixmap.fromImage(heat_map)
+            # Положим одну картинку на другую
+            painter = QPainter(pixmap)
+            painter.begin(pixmap)
+            painter.setOpacity(0.5)
+            painter.drawPixmap(0, 0, pixmap_zone)
+            painter.end()
+            # Разместим на сцене pixmap с pixmap_zone
+            self.scene.addPixmap(pixmap)
+            self.scene.setSceneRect(QRectF(pixmap.rect()))
 
     def show_heat_map(self, zeors_array, width: int, height: int, qimg_zone):
         max_el = zeors_array.max()

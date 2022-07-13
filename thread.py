@@ -1,7 +1,7 @@
 import random
 import sys
-import time
 import numpy as np
+import time
 
 from PySide2.QtCore import QObject, QRunnable, QThreadPool, QTimer, Signal
 from PySide2.QtWidgets import (
@@ -17,30 +17,33 @@ from PySide2.QtWidgets import (
 class WorkerSignals(QObject):
     finished = Signal()
     error = Signal(str)
-    result = Signal(np.ndarray)
+    result = Signal(int)
 
 
 class Worker(QRunnable):
-    def __init__(self, iterations=2):
+    def __init__(self, wait=1):
         super().__init__()
         self.signals = WorkerSignals()
-        self.iterations = iterations
+        self.wait = wait
 
     def run(self):
         try:
-            zeors_array = np.zeros((3, 3))
-            print(type(zeors_array))
+            time.sleep(self.wait)
+            var = 1
 
         except Exception as e:
             self.signals.error.emit(str(e))
         else:
             self.signals.finished.emit()
-            self.signals.result.emit(zeors_array)
+            self.signals.result.emit(var)
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        self.sum_var_after_worker = 0
+
 
         self.threadpool = QThreadPool()
         print(
@@ -48,7 +51,6 @@ class MainWindow(QMainWindow):
         )
 
         self.counter = 0
-
         layout = QVBoxLayout()
 
         self.l = QLabel("Start")
@@ -71,16 +73,18 @@ class MainWindow(QMainWindow):
         self.timer.start()
 
     def oh_no(self):
-        worker = Worker(iterations=random.randint(10, 50))
+        worker = Worker()
         worker.signals.result.connect(self.worker_output)
         worker.signals.finished.connect(self.worker_complete)
         worker.signals.error.connect(self.worker_error)
         self.threadpool.start(worker)
 
     def worker_output(self, s):
+        self.sum_var_after_worker += s
         print("RESULT", s)
 
     def worker_complete(self):
+        print("sum_var", self.sum_var_after_worker)
         print("THREAD COMPLETE!")
 
     def worker_error(self, t):

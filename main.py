@@ -67,7 +67,8 @@ class WorkerSignals(QObject):
 
 
 class Worker(QRunnable):
-    def __init__(self, width: int, height: int, obj_coord: list, max_zone: int, type_obj: int, scale_plan: float):
+    def __init__(self, width: int, height: int, obj_coord: list, max_zone: int, type_obj: int, scale_plan: float,
+                 t: int):
         """
         :param width - ширина картинки (для создания матрицы)
         :param height - высота картинки картинки (для создания матрицы)
@@ -84,10 +85,12 @@ class Worker(QRunnable):
         self.max_zone = max_zone
         self.type_obj = type_obj
         self.scale_plan = scale_plan
+        self.t = t
 
     def run(self):
         try:
-            print("init_worker")
+            # time.sleep(self.t)
+            # print("init_worker")
             print(self.width,
                   self.height,
                   self.obj_coord,
@@ -96,26 +99,29 @@ class Worker(QRunnable):
             zeors_array = np.zeros((self.width, self.height))
             # Создадим объект до которого идет измерение
             if len(self.obj_coord) > 2:
-                if self.type_obj != 0:  # линейный объект
+                if self.type_obj == 0:  # линейный объект
                     print('линейный')
                     obj = LineString(list(zip(self.obj_coord[0::2], self.obj_coord[1::2])))
                 else:
                     print('стационарный')
                     obj = Polygon(list(zip(self.obj_coord[0::2], self.obj_coord[1::2])))
             else:
-                obj = Point(self.obj_coord[0],self.obj_coord[1])
+                obj = Point(self.obj_coord[0], self.obj_coord[1])
             # создадим силу
             dist_power = [i for i in range(self.max_zone)]
-            power = list(reversed([i/100 for i in dist_power]))
+
+            power = list(reversed([i / 100 for i in dist_power]))
             # Пробежим по координатам и определим расстояние до него
             for x in range(0, self.width):
                 for y in range(0, self.height):
                     distance = int(Point(x, y).distance(obj) * self.scale_plan)
+                    # print("dist", distance)
                     if distance in dist_power:
                         ind = dist_power.index(distance)
                         zeors_array[x, y] = power[ind]
                     if distance == 0:
                         zeors_array[x, y] = max(power)
+
 
         except Exception as e:
             self.signals.error.emit(str(e))
@@ -178,7 +184,6 @@ class Painter(QMainWindow):
 
         # ж. Матрица heatmap'а
         self.heatmap = 0
-
 
     def set_ico(self):
         """
@@ -1195,16 +1200,18 @@ class Painter(QMainWindow):
 
         i = 0
         for obj in type_obj:
-            worker = Worker(int(self.scene.width()), int(self.scene.height()), coordinate_obj[i], max_zone[i], obj, scale_plan)
+            worker = Worker(int(self.scene.width()), int(self.scene.height()), coordinate_obj[i], max_zone[i], obj,
+                            scale_plan, t=i)
             worker.signals.result.connect(self.worker_output)
             worker.signals.finished.connect(self.worker_complete)
             self.threadpool.start(worker)
             i += 1
+        self.threadpool.waitForDone()
 
 
 
     def worker_output(self, s):
-        print("RESULT", s)
+        print("RESULT", 1111)
         self.heatmap = self.heatmap + s
 
     def worker_complete(self):
@@ -1231,6 +1238,10 @@ class Painter(QMainWindow):
             # Разместим на сцене pixmap с pixmap_zone
             self.scene.addPixmap(pixmap)
             self.scene.setSceneRect(QRectF(pixmap.rect()))
+            # очистим матрицу результатов
+            # self.heatmap = 0
+            # очистим пул
+            # self.threadpool.clear()
 
     def show_heat_map(self, zeors_array, width: int, height: int, qimg_zone):
         max_el = zeors_array.max()
@@ -1333,6 +1344,7 @@ class Painter(QMainWindow):
                 elif max_el * 0.0002 > zeors_array[x, y] >= max_el * 0.0001:
                     qimg_zone.setPixelColor(x, y, QColor(0, 0, 255, 255))
         return qimg_zone
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

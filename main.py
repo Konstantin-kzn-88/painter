@@ -553,8 +553,7 @@ class Painter(QMainWindow):
 
     # ___________Функции_работы_со_сценой_START________________
     def scene_press_event(self, event):
-        # Проверки
-        self.is_action_valid()
+
         # Проверим наличие ген.плана
         if self.plan_list.currentText() != '--Нет ген.планов--' and self.check_key:
             # Проверим нажатие кнопки draw_type_act,
@@ -591,6 +590,8 @@ class Painter(QMainWindow):
                         self.__clear_scale()
                 # выбрано определение длины отрезка
                 if self.type_act.currentIndex() == 1:
+                    # Проверки
+                    self.is_action_valid()
                     self.del_all_item()  # удалим все Item
                     if self.scale_plan.text() == "":  # проверим есть ли масштаб
                         msg = QMessageBox(self)
@@ -611,6 +612,8 @@ class Painter(QMainWindow):
                         self.result_type_act.setText(f'Длина линии {real_lenght}, м')
 
                 if self.type_act.currentIndex() == 2:
+                    # Проверки
+                    self.is_action_valid()
                     self.del_all_item()  # удалим все Item
                     if self.scale_plan.text() == "":  # проверим есть ли масштаб
                         msg = QMessageBox(self)
@@ -631,6 +634,8 @@ class Painter(QMainWindow):
                         self.result_type_act.setText(f'Площадь {real_area}, м2')
             # если выбрано рисовать координаты
             if self.draw_obj.isChecked():
+                # Проверки
+                self.is_action_valid()
                 # Отожмем кнопку отрисовки масштаба
                 self.draw_type_act.setChecked(False)
                 print(self.row_ind_in_data_grid, "self.row_ind_in_data_grid")
@@ -997,10 +1002,6 @@ class Painter(QMainWindow):
         coordinate_obj = [[float(y) for y in i] for i in coordinate_obj]
         type_obj = [int(i.pop()) for i in data]
 
-        if row_index != -1:
-            coordinate_obj = coordinate_obj[row_index:row_index + 1]
-            type_obj = type_obj[row_index:row_index + 1]
-
         # 3. Нарисовать
         # 3.1. Определим все цвета зон покнопкам
         color_zone_arr = self.__get_color_for_zone()
@@ -1018,41 +1019,78 @@ class Painter(QMainWindow):
         qp.begin(pixmap_zone)
         #
         for zone_index in range(-1, -7, -1):
-            i = 0  # итератор для объектов
+            i= 0
             for obj in type_obj:
-                # начинаем рисовать с последнего цвета
-                color = color_zone_arr[zone_index]
-                zone = client.Client().server_get_zone(float(data[i][zone_index]), scale_plan)
-                # зона может быть 0 тогда ничего рисовать не надо
-                if zone == 0:
-                    continue
-                # определим ручку и кисточку
-                pen = QPen(QColor(color[0], color[1], color[2], color[3]), zone, Qt.SolidLine)
-                brush = QBrush(QColor(color[0], color[1], color[2], color[3]))
-                # со сглаживаниями
-                pen.setJoinStyle(Qt.RoundJoin)
-                # закругленный концы
-                pen.setCapStyle(Qt.RoundCap)
-                qp.setPen(pen)
-                qp.setBrush(brush)
-                #
-                # возьмем координаты оборудования
-                obj_coord = self.__get_polygon(coordinate_obj[i])
-                if len(obj_coord) >= 2:  # координаты можно преобразовать в полигон
-                    if obj == 0:
-                        # линейн. получим полигон
-                        qp.drawPolyline(obj_coord)
-                    else:
-                        # стац. об. получим полигон
-                        qp.drawPolyline(obj_coord)
-                        qp.drawPolygon(obj_coord, Qt.OddEvenFill)
-                else:  # не получается полигон, значит точка
-                    pen_point = QPen(QColor(color[0], color[1], color[2], color[3]), 1, Qt.SolidLine)
-                    qp.setPen(pen_point)
-                    point = QPoint(int(float(coordinate_obj[i][0])), int(float(coordinate_obj[i][1])))
-                    qp.drawEllipse(point, zone / 2, zone / 2)  # т.к. нужен радиус
+                if row_index == -1:
+                    # начинаем рисовать с последнего цвета
+                    color = color_zone_arr[zone_index]
+                    zone = client.Client().server_get_zone(float(data[i][zone_index]), scale_plan)
 
-                i += 1  # следующий объект
+                    # зона может быть 0 тогда ничего рисовать не надо
+                    if zone == 0:
+                        continue
+                    # определим ручку и кисточку
+                    pen = QPen(QColor(color[0], color[1], color[2], color[3]), zone, Qt.SolidLine)
+                    brush = QBrush(QColor(color[0], color[1], color[2], color[3]))
+                    # со сглаживаниями
+                    pen.setJoinStyle(Qt.RoundJoin)
+                    # закругленный концы
+                    pen.setCapStyle(Qt.RoundCap)
+                    qp.setPen(pen)
+                    qp.setBrush(brush)
+                    #
+                    # возьмем координаты оборудования
+                    obj_coord = self.__get_polygon(coordinate_obj[i])
+                    if len(obj_coord) >= 2:  # координаты можно преобразовать в полигон
+                        if obj == 0:
+                            # линейн. получим полигон
+                            qp.drawPolyline(obj_coord)
+                        else:
+                            # стац. об. получим полигон
+                            qp.drawPolyline(obj_coord)
+                            qp.drawPolygon(obj_coord, Qt.OddEvenFill)
+                    else:  # не получается полигон, значит точка
+                        pen_point = QPen(QColor(color[0], color[1], color[2], color[3]), 1, Qt.SolidLine)
+                        qp.setPen(pen_point)
+                        point = QPoint(int(float(coordinate_obj[i][0])), int(float(coordinate_obj[i][1])))
+                        qp.drawEllipse(point, zone / 2, zone / 2)  # т.к. нужен радиус
+
+                    i = i + 1  # итератор для объектов
+
+                else:
+                    # начинаем рисовать с последнего цвета
+                    color = color_zone_arr[zone_index]
+                    zone = client.Client().server_get_zone(float(data[row_index][zone_index]), scale_plan)
+
+                    # зона может быть 0 тогда ничего рисовать не надо
+                    if zone == 0:
+                        continue
+                    # определим ручку и кисточку
+                    pen = QPen(QColor(color[0], color[1], color[2], color[3]), zone, Qt.SolidLine)
+                    brush = QBrush(QColor(color[0], color[1], color[2], color[3]))
+                    # со сглаживаниями
+                    pen.setJoinStyle(Qt.RoundJoin)
+                    # закругленный концы
+                    pen.setCapStyle(Qt.RoundCap)
+                    qp.setPen(pen)
+                    qp.setBrush(brush)
+                    #
+                    # возьмем координаты оборудования
+                    obj_coord = self.__get_polygon(coordinate_obj[row_index])
+                    if len(obj_coord) >= 2:  # координаты можно преобразовать в полигон
+                        if obj == 0:
+                            # линейн. получим полигон
+                            qp.drawPolyline(obj_coord)
+                        else:
+                            # стац. об. получим полигон
+                            qp.drawPolyline(obj_coord)
+                            qp.drawPolygon(obj_coord, Qt.OddEvenFill)
+                    else:  # не получается полигон, значит точка
+                        pen_point = QPen(QColor(color[0], color[1], color[2], color[3]), 1, Qt.SolidLine)
+                        qp.setPen(pen_point)
+                        point = QPoint(int(float(coordinate_obj[row_index][0])), int(float(coordinate_obj[row_index][1])))
+                        qp.drawEllipse(point, zone / 2, zone / 2)  # т.к. нужен радиус
+
 
         # Завершить рисование
         qp.end()

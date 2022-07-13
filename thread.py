@@ -1,6 +1,7 @@
 import random
 import sys
 import time
+import numpy as np
 
 from PySide2.QtCore import QObject, QRunnable, QThreadPool, QTimer, Signal
 from PySide2.QtWidgets import (
@@ -16,7 +17,7 @@ from PySide2.QtWidgets import (
 class WorkerSignals(QObject):
     finished = Signal()
     error = Signal(str)
-    result = Signal(dict)
+    result = Signal(np.ndarray)
 
 
 class Worker(QRunnable):
@@ -27,15 +28,14 @@ class Worker(QRunnable):
 
     def run(self):
         try:
-            time.sleep(2)
-            n= 4
-            v = 5
+            zeors_array = np.zeros((3, 3))
+            print(type(zeors_array))
 
         except Exception as e:
             self.signals.error.emit(str(e))
         else:
             self.signals.finished.emit()
-            self.signals.result.emit({"n": n, "value": v})
+            self.signals.result.emit(zeors_array)
 
 
 class MainWindow(QMainWindow):

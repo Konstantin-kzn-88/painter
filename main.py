@@ -11,7 +11,6 @@
 # (C) 2022 Kuznetsov Konstantin
 # email kuznetsovkm@yandex.ru
 # -----------------------------------------------------------
-import math
 import os
 import sys
 import time
@@ -47,6 +46,8 @@ from PySide2.QtWidgets import (
     QGraphicsLineItem,
     QGraphicsItem,
     QColorDialog,
+    QSlider
+
 )
 
 from PySide2.QtGui import QImage, QIcon, QPixmap, QFont, QColor, QPainter, QPen, QBrush, QPolygon
@@ -58,8 +59,20 @@ from client import client
 
 I18N_QT_PATH = str(os.path.join(os.path.abspath('.'), 'i18n'))
 
+PALLETE = np.array([[255, 255, 255, 255], [0, 50, 255, 255], [0, 100, 255, 255],  # темно голубой
+                    [0, 120, 255, 255], [0, 140, 255, 255], [0, 160, 255, 255],
+                    [0, 190, 255, 255], [0, 210, 255, 255], [0, 220, 255, 255],  # голубой
+                    [0, 255, 255, 255], [100, 255, 255, 255], [130, 255, 0, 255],  # зеленый
+                    [150, 255, 0, 255], [180, 255, 0, 255], [200, 255, 0, 255],  # салотовый
+                    [220, 255, 0, 255], [230, 255, 0, 255], [240, 255, 0, 255],
+                    [255, 255, 0, 255], [255, 230, 0, 255], [255, 210, 0, 255],  # желтый
+                    [255, 200, 0, 255], [255, 190, 0, 255], [255, 170, 0, 255],
+                    [255, 150, 0, 255], [255, 120, 0, 255], [255, 80, 0, 255],  # рыжий
+                    [255, 60, 0, 255], [255, 30, 0, 255], [255, 0, 0, 255]], dtype='uint8')  # красный
+PALLETE[:, [0, 2]] = PALLETE[:, [2, 0]]
 
-# Многопоточка
+
+# Многопоточка 0, 190, 255, 255
 class WorkerSignals(QObject):
     finished = Signal()
     error = Signal(str)
@@ -67,7 +80,7 @@ class WorkerSignals(QObject):
 
 
 class Worker(QRunnable):
-    def __init__(self, width: int, height: int, obj_coord: list, max_zone: int, type_obj: int, scale_plan: float):
+    def __init__(self, width: int, height: int, obj_coord: list, max_zone: int, type_obj: int, scale_plan: float, blurring: int):
         """
         :param width - ширина картинки (для создания матрицы)
         :param height - высота картинки картинки (для создания матрицы)
@@ -84,7 +97,7 @@ class Worker(QRunnable):
         self.max_zone = max_zone
         self.type_obj = type_obj
         self.scale_plan = scale_plan
-
+        self.blurring = blurring
 
     def run(self):
         try:
@@ -105,7 +118,7 @@ class Worker(QRunnable):
             else:
                 obj = Point(self.obj_coord[0], self.obj_coord[1])
             # создадим силу
-            dist_power = [i for i in range(self.max_zone*10)]
+            dist_power = [i for i in range(self.max_zone*self.blurring)]
 
             power = list(reversed([i / 100 for i in dist_power]))
             # Пробежим по координатам и определим расстояние до него
@@ -181,6 +194,7 @@ class Painter(QMainWindow):
 
         # ж. Матрица heatmap'а
         self.heatmap = 0
+
 
     def set_ico(self):
         """
@@ -261,6 +275,14 @@ class Painter(QMainWindow):
         self.draw_type_act.clicked.connect(self.__change_draw_type_act)
         self.draw_type_act.setCheckable(True)
         self.draw_type_act.setChecked(False)
+        self.risk_info = QLabel()  # информация о расчете риска
+        self.risk_info.setText('')
+        self.risk_info.setFont(QFont("Times", 10, QFont.Bold))
+        self.risk_info.setStyleSheet('color: red')
+        self.risk_blurring = QSlider(Qt.Horizontal) #коэф.размытия риска
+        self.risk_blurring.setRange(1, 100)
+        self.risk_blurring.setToolTip("Размыть риск")
+
         # Упаковываем все в QGroupBox Рамка №1
         layout_scale = QFormLayout(self)
         GB_scale = QGroupBox('Интрументы')
@@ -269,6 +291,9 @@ class Painter(QMainWindow):
         layout_scale.addRow("", self.type_act)
         layout_scale.addRow("", self.draw_type_act)
         layout_scale.addRow("", self.result_type_act)
+        layout_scale.addRow("", self.risk_blurring)
+        layout_scale.addRow("", self.risk_info)
+
         GB_scale.setLayout(layout_scale)
 
         # Рамка №3. Главной вкладки. Ситуацилнные планы. (то что будет в рамке 3)
@@ -1198,33 +1223,27 @@ class Painter(QMainWindow):
         max_zone = [int(i.pop()) for i in data]
         # очистим матрицу результатов
         self.heatmap = np.zeros((int(self.scene.width()), int(self.scene.height())))
-
+        self.risk_info.setText('Подождите идет расчет!')
         i = 0
+        blurring = self.risk_blurring.value()
         for obj in type_obj:
             worker = Worker(int(self.scene.width()), int(self.scene.height()), coordinate_obj[i], max_zone[i], obj,
-                            scale_plan)
+                            scale_plan, blurring)
             worker.signals.result.connect(self.worker_output)
             worker.signals.finished.connect(self.worker_complete)
             self.threadpool.start(worker)
             i += 1
 
-
     def worker_output(self, s):
-        print("RESULT", 1111)
         self.heatmap = self.heatmap + s
         if self.threadpool.activeThreadCount() == 0:
             # На основе исходной картинки создадим QImage и QPixmap
             _, image_data = class_db.Data_base(self.db_name, self.db_path).get_plan_in_db(self.plan_list.currentText())
             qimg = QImage.fromData(image_data)
             pixmap = QPixmap.fromImage(qimg)
-            # создадим соразмерный pixmap_zone и сделаем его прозрачным
-            pixmap_zone = QPixmap(pixmap.width(), pixmap.height())
-            pixmap_zone.fill(QColor(255, 255, 255, 255))
-            # Начнем рисование
-            qimg_zone = pixmap_zone.toImage()
             # Нарисуем тепловую карту
-            heat_map = self.show_heat_map(self.heatmap, pixmap.width(), pixmap.height(), qimg_zone)
-            pixmap_zone = QPixmap.fromImage(heat_map)
+            self.show_heat_map(self.heatmap)
+            pixmap_zone = QPixmap.fromImage(QImage('tmp.png'))
             # удалить белый фон (при наличии)
             pixmap_zone = self.__del_white_pixel(pixmap_zone)
             # Положим одну картинку на другую
@@ -1236,114 +1255,40 @@ class Painter(QMainWindow):
             # Разместим на сцене pixmap с pixmap_zone
             self.scene.addPixmap(pixmap)
             self.scene.setSceneRect(QRectF(pixmap.rect()))
+            # Очистим предупреждение что считается риск
+            self.risk_info.setText('')
+
 
 
     def worker_complete(self):
         print("THREAD COMPLETE!")
 
+    def show_heat_map(self, zeors_array):
 
-    def show_heat_map(self, zeors_array, width: int, height: int, qimg_zone):
-        max_el = zeors_array.max()
-        for x in range(width):
-            for y in range(height):
-                if zeors_array[x, y] >= max_el:
-                    qimg_zone.setPixelColor(x, y, QColor(255, 0, 0, 255))
-                # красный
-                elif max_el * 1.00 > zeors_array[x, y] >= max_el * 0.90:
-                    qimg_zone.setPixelColor(x, y, QColor(255, 10, 0, 255))
-                # рыжий
-                elif max_el * 0.90 > zeors_array[x, y] >= max_el * 0.95:
-                    qimg_zone.setPixelColor(x, y, QColor(255, 40, 0, 255))
-                elif max_el * 0.95 > zeors_array[x, y] >= max_el * 0.80:
-                    qimg_zone.setPixelColor(x, y, QColor(255, 80, 0, 255))
-                elif max_el * 0.80 > zeors_array[x, y] >= max_el * 0.85:
-                    qimg_zone.setPixelColor(x, y, QColor(255, 120, 0, 255))
-                elif max_el * 0.85 > zeors_array[x, y] >= max_el * 0.70:
-                    qimg_zone.setPixelColor(x, y, QColor(255, 150, 0, 255))
-                # желтый
-                elif max_el * 0.70 > zeors_array[x, y] >= max_el * 0.65:
-                    qimg_zone.setPixelColor(x, y, QColor(255, 170, 0, 255))
-                elif max_el * 0.65 > zeors_array[x, y] >= max_el * 0.60:
-                    qimg_zone.setPixelColor(x, y, QColor(255, 190, 0, 255))
-                elif max_el * 0.60 > zeors_array[x, y] >= max_el * 0.55:
-                    qimg_zone.setPixelColor(x, y, QColor(255, 210, 0, 255))
-                elif max_el * 0.55 > zeors_array[x, y] >= max_el * 0.50:
-                    qimg_zone.setPixelColor(x, y, QColor(255, 230, 0, 255))
-                elif max_el * 0.50 > zeors_array[x, y] >= max_el * 0.45:
-                    qimg_zone.setPixelColor(x, y, QColor(255, 255, 0, 255))
-                # салатовый
-                elif max_el * 0.45 > zeors_array[x, y] >= max_el * 0.475:
-                    qimg_zone.setPixelColor(x, y, QColor(230, 255, 0, 255))
-                elif max_el * 0.475 > zeors_array[x, y] >= max_el * 0.450:
-                    qimg_zone.setPixelColor(x, y, QColor(210, 255, 0, 255))
-                elif max_el * 0.450 > zeors_array[x, y] >= max_el * 0.425:
-                    qimg_zone.setPixelColor(x, y, QColor(180, 255, 0, 255))
-                elif max_el * 0.425 > zeors_array[x, y] >= max_el * 0.400:
-                    qimg_zone.setPixelColor(x, y, QColor(150, 255, 0, 255))
-                # зеленый
-                elif max_el * 0.400 > zeors_array[x, y] >= max_el * 0.39:
-                    qimg_zone.setPixelColor(x, y, QColor(100, 255, 0, 255))
-                elif max_el * 0.39 > zeors_array[x, y] >= max_el * 0.38:
-                    qimg_zone.setPixelColor(x, y, QColor(70, 255, 0, 255))
-                elif max_el * 0.38 > zeors_array[x, y] >= max_el * 0.37:
-                    qimg_zone.setPixelColor(x, y, QColor(40, 255, 0, 255))
-                elif max_el * 0.37 > zeors_array[x, y] >= max_el * 0.36:
-                    qimg_zone.setPixelColor(x, y, QColor(10, 255, 0, 255))
-                elif max_el * 0.36 > zeors_array[x, y] >= max_el * 0.35:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 255, 0, 255))
+        bins = np.array([i * np.max(zeors_array) / 30 for i in range(1, 31)])
 
-                # голубой
-                elif max_el * 0.35 > zeors_array[x, y] >= max_el * 0.245:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 255, 40, 255))
-                elif max_el * 0.245 > zeors_array[x, y] >= max_el * 0.240:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 255, 80, 255))
-                elif max_el * 0.240 > zeors_array[x, y] >= max_el * 0.235:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 255, 100, 255))
-                elif max_el * 0.235 > zeors_array[x, y] >= max_el * 0.23:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 255, 120, 255))
-                elif max_el * 0.23 > zeors_array[x, y] >= max_el * 0.225:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 255, 150, 255))
-                elif max_el * 0.225 > zeors_array[x, y] >= max_el * 0.22:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 255, 210, 255))
-                elif max_el * 0.22 > zeors_array[x, y] >= max_el * 0.215:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 255, 240, 255))
-                elif max_el * 0.215 > zeors_array[x, y] >= max_el * 0.21:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 255, 255, 255))
+        digitize = np.digitize(zeors_array, bins, right=True)
+        digitize = np.expand_dims(digitize, axis=2)
 
-                # темно-голубой
-                elif max_el * 0.21 > zeors_array[x, y] >= max_el * 0.19:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 220, 255, 255))
-                elif max_el * 0.19 > zeors_array[x, y] >= max_el * 0.18:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 210, 255, 255))
-                elif max_el * 0.18 > zeors_array[x, y] >= max_el * 0.17:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 200, 255, 255))
-                elif max_el * 0.17 > zeors_array[x, y] >= max_el * 0.16:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 190, 255, 255))
-                elif max_el * 0.16 > zeors_array[x, y] >= max_el * 0.15:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 160, 255, 255))
-                elif max_el * 0.15 > zeors_array[x, y] >= max_el * 0.14:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 150, 255, 255))
-                #     синий
-                elif max_el * 0.14 > zeors_array[x, y] >= max_el * 0.13:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 130, 255, 255))
-                elif max_el * 0.13 > zeors_array[x, y] >= max_el * 0.125:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 110, 255, 255))
-                elif max_el * 0.125 > zeors_array[x, y] >= max_el * 0.115:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 90, 255, 255))
-                elif max_el * 0.115 > zeors_array[x, y] >= max_el * 0.11:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 70, 255, 255))
-                elif max_el * 0.11 > zeors_array[x, y] >= max_el * 0.108:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 50, 255, 255))
-                elif max_el * 0.108 > zeors_array[x, y] >= max_el * 0.107:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 40, 255, 255))
-                elif max_el * 0.107 > zeors_array[x, y] >= max_el * 0.106:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 30, 255, 255))
-                elif max_el * 0.106 > zeors_array[x, y] >= max_el * 0.102:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 20, 255, 255))
-                elif max_el * 0.102 > zeors_array[x, y] >= max_el * 0.101:
-                    qimg_zone.setPixelColor(x, y, QColor(0, 0, 255, 255))
+        digitize = np.fliplr(digitize)
+        digitize = np.rot90(digitize, k=-3)
+
+        im = np.choose(digitize, PALLETE, mode='clip')
+        h, w, _ = im.shape
+        qimg_zone = QImage(im, w, h, 4 * w, QImage.Format_ARGB32)
+        qimg_zone.save('tmp.png')
         return qimg_zone
 
+
+def my_excepthook(type, value, tback):
+    QMessageBox.critical(
+        window, "CRITICAL ERROR", str(value),
+        QMessageBox.Cancel
+    )
+    sys.__excepthook__(type, value, tback)
+
+
+sys.excepthook = my_excepthook
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

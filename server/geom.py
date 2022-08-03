@@ -12,7 +12,3 @@ def lenght_for_line(data:list)->float:
 def area_for_poligon(data:list)->float:
     return Polygon(list(zip(*[iter(data)] * 2))).area
 
-def zone_with_scale(zone: float, scale: float)->float:
-    return zone * scale * 2 # т.к. на вход радиус, а нужен диаметр
-
-

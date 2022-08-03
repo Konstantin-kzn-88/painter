@@ -80,7 +80,8 @@ class WorkerSignals(QObject):
 
 
 class Worker(QRunnable):
-    def __init__(self, width: int, height: int, obj_coord: list, max_zone: int, type_obj: int, scale_plan: float, blurring: int):
+    def __init__(self, width: int, height: int, obj_coord: list, max_zone: int, type_obj: int, scale_plan: float,
+                 blurring: int):
         """
         :param width - ширина картинки (для создания матрицы)
         :param height - высота картинки картинки (для создания матрицы)
@@ -118,7 +119,7 @@ class Worker(QRunnable):
             else:
                 obj = Point(self.obj_coord[0], self.obj_coord[1])
             # создадим силу
-            dist_power = [i for i in range(self.max_zone*self.blurring)]
+            dist_power = [i for i in range(self.max_zone * self.blurring)]
 
             power = list(reversed([i / 100 for i in dist_power]))
             # Пробежим по координатам и определим расстояние до него
@@ -194,7 +195,6 @@ class Painter(QMainWindow):
 
         # ж. Матрица heatmap'а
         self.heatmap = 0
-
 
     def set_ico(self):
         """
@@ -279,7 +279,7 @@ class Painter(QMainWindow):
         self.risk_info.setText('')
         self.risk_info.setFont(QFont("Times", 10, QFont.Bold))
         self.risk_info.setStyleSheet('color: red')
-        self.risk_blurring = QSlider(Qt.Horizontal) #коэф.размытия риска
+        self.risk_blurring = QSlider(Qt.Horizontal)  # коэф.размытия риска
         self.risk_blurring.setRange(1, 100)
         self.risk_blurring.setToolTip("Размыть риск")
 
@@ -1105,7 +1105,7 @@ class Painter(QMainWindow):
                 if row_index == -1:
                     # начинаем рисовать с последнего цвета
                     color = color_zone_arr[zone_index]
-                    zone = client.Client().server_get_zone(float(data[i][zone_index]), scale_plan)
+                    zone = float(data[i][zone_index]) * scale_plan * 2
 
                     # зона может быть 0 тогда ничего рисовать не надо
                     if zone == 0:
@@ -1141,7 +1141,7 @@ class Painter(QMainWindow):
                 else:
                     # начинаем рисовать с последнего цвета
                     color = color_zone_arr[zone_index]
-                    zone = client.Client().server_get_zone(float(data[row_index][zone_index]), scale_plan)
+                    zone = float(data[i][zone_index]) * scale_plan * 2
 
                     # зона может быть 0 тогда ничего рисовать не надо
                     if zone == 0:
@@ -1257,8 +1257,6 @@ class Painter(QMainWindow):
             self.scene.setSceneRect(QRectF(pixmap.rect()))
             # Очистим предупреждение что считается риск
             self.risk_info.setText('')
-
-
 
     def worker_complete(self):
         print("THREAD COMPLETE!")

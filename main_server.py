@@ -101,10 +101,6 @@ class Painter_server(socketserver.BaseRequestHandler):
             data = [float(i) for i in data]
             answer = geom.area_for_poligon(data)
 
-        elif num_direction == 3:
-            zone = data[0]
-            scale = data[1]
-            answer = geom.zone_with_scale(zone, scale)
         else:
             answer = 'error'
         print(answer, "answer")

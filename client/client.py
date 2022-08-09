@@ -18,8 +18,8 @@ import os
 
 
 KEY = '@v&#XST3kH-t9fZad69eN'
-# IP = '127.0.0.1'
-IP = '45.142.36.191'
+IP = '127.0.0.1'
+# IP = '45.142.36.191'
 
 class Client(QtWidgets.QWidget):
     def __init__(self, key = KEY):

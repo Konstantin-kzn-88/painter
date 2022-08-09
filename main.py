@@ -473,11 +473,11 @@ class Painter(QMainWindow):
         plan_menu.addAction(plan_save)
         plan_clear = QAction(self.clear_ico, 'Очистить', self)
         plan_clear.setStatusTip('Очистить план объекта')
-        # plan_clear.triggered.connect(self.plan_clear)
+        plan_clear.triggered.connect(lambda: self.plan_list_select(self.plan_list.currentText()))
         plan_menu.addAction(plan_clear)
         plan_del = QAction(self.del_ico, 'Удалить план с объектами', self)
         plan_del.setStatusTip('Удалить изображение плана c объекта')
-        # plan_del.triggered.connect(self.plan_del)
+        plan_del.triggered.connect(self.plan_del)
         plan_menu.addAction(plan_del)
         # Рисование (меню)
         paint_menu = QMenu('Рисовать', self)
@@ -631,6 +631,14 @@ class Painter(QMainWindow):
                     self.table_data.setItem(count_row, col, widget_item_for_table)
                     col += 1
 
+    def plan_del(self):
+        """
+        Удаление ген.плана из БД
+        """
+
+        class_db.Data_base(self.db_name, self.db_path).plan_del_in_db(self.plan_list.currentText())
+        self.scene.clear()
+        class_db.Data_base(self.db_name, self.db_path).plan_list_update(self.plan_list)
     # ___________Функции_с_ген.планом_END________________
 
     # ___________Функции_работы_со_сценой_START________________

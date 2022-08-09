@@ -318,3 +318,19 @@ class Data_base(QtWidgets.QWidget):
                     if str(f'{row[0]}, {row[3]}') == name_plan:
                         # SQL запрос на вставку
                         cursor.execute('UPDATE objects SET data = ?  where id = ?', (str(data_list), str(row[0])))
+
+    def plan_del_in_db(self, name_plan: str):
+        """
+        Удаление ген.плана из БД
+        :param - name_plan - наименование плана для поиска в базе данных
+        """
+        if self.db_path != '' and self.db_name != '':
+            path_str = f'{self.db_path}/{self.db_name}'.replace("/", "//")
+
+            with sql.connect(path_str) as connection:
+                cursor = connection.cursor()
+                cursor.execute("SELECT id, name_plan FROM objects")
+                plan_in_db = cursor.fetchall()
+                for row in plan_in_db:
+                    if str(f'{row[0]}, {row[1]}') == name_plan:
+                        cursor.execute('DELETE FROM objects WHERE id=?', (str(row[0]),))

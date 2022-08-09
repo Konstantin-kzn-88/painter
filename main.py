@@ -19,6 +19,7 @@ import json
 import numpy as np
 from shapely.geometry import LineString, Polygon, Point
 
+
 from PySide2.QtCore import QRectF, Qt, QModelIndex, QTranslator, QObject, QRunnable, QThreadPool, QTimer, Signal, QPoint
 from PySide2.QtWidgets import (
     QApplication,
@@ -635,6 +636,12 @@ class Painter(QMainWindow):
     # ___________Функции_работы_со_сценой_START________________
     def scene_press_event(self, event):
 
+        def __lenght_for_line(data: list) -> float:
+            return LineString(list(zip(*[iter(data)] * 2))).length
+
+        def __area_for_poligon(data: list) -> float:
+            return Polygon(list(zip(*[iter(data)] * 2))).area
+
         # Проверим наличие ген.плана
         if self.plan_list.currentText() != '--Нет ген.планов--' and self.check_key:
             # Проверим нажатие кнопки draw_type_act,
@@ -653,7 +660,7 @@ class Painter(QMainWindow):
                     self.draw_all_item(self.draw_point)
                     if len(self.draw_point) == 4:  # как только длина draw_point == 4
                         num_int, ok = QInputDialog.getInt(self, "Масштаб", "Сколько метров:")
-                        length = client.Client().server_get_lenght(self.draw_point)
+                        length = length = __lenght_for_line(data=[float(i) for i in self.draw_point])
                         if length > 0:
                             if ok and num_int > 0 and length > 0:
                                 self.draw_point.clear()  # очищаем
@@ -687,7 +694,7 @@ class Painter(QMainWindow):
                     self.draw_all_item(self.draw_point)
                     print(self.draw_point)
                     if len(self.draw_point) > 2:
-                        length = client.Client().server_get_lenght(self.draw_point)
+                        length = __lenght_for_line(data=[float(i) for i in self.draw_point])
                         real_lenght = float(length) / float(self.scale_plan.displayText())
                         real_lenght = round(real_lenght, 2)
                         self.result_type_act.setText(f'Длина линии {real_lenght}, м')
@@ -709,7 +716,7 @@ class Painter(QMainWindow):
                     self.draw_all_item(self.draw_point)
 
                     if len(self.draw_point) > 4:
-                        area = client.Client().server_get_area(self.draw_point)
+                        area = __area_for_poligon(data=[float(i) for i in self.draw_point])
                         real_area = float(area) / pow(float(self.scale_plan.displayText()), 2)
                         real_area = round(real_area, 2)
                         self.result_type_act.setText(f'Площадь {real_area}, м2')
@@ -739,6 +746,8 @@ class Painter(QMainWindow):
                     self.draw_point.clear()
                 else:
                     self.draw_obj.setChecked(False)
+
+
 
     # ___________Функции_со_сценой_END________________
 

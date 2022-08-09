@@ -1,6 +1,5 @@
 import socketserver
 import json
-from server import geom
 
 KEY = ('@v&#XST3kH-t9fZad69eN', # мой ключ
        '6fjr9q9yY6-gZ&rdNtVfz', # Дима
@@ -91,15 +90,6 @@ class Painter_server(socketserver.BaseRequestHandler):
                 answer = True
             else:
                 answer = False
-
-        # Расстояние
-        elif num_direction == 1:
-            data = [float(i) for i in data]
-            answer = geom.lenght_for_line(data)
-        # площадь
-        elif num_direction == 2:
-            data = [float(i) for i in data]
-            answer = geom.area_for_poligon(data)
 
         else:
             answer = 'error'

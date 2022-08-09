@@ -538,7 +538,7 @@ class Painter(QMainWindow):
         Путь и имя базы данных не равны пустым строкам
         """
         if path != '' and name != '':
-            self.data_base_info_connect.setText(f'База  данных {self.db_name}.db подключена!')
+            self.data_base_info_connect.setText(f'База  данных {self.db_name} подключена!')
             self.data_base_info_connect.setStyleSheet('color: green')
         else:
             self.data_base_info_connect.setText('Нет подключения к базе данных...')

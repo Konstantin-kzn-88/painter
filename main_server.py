@@ -119,5 +119,5 @@ class Painter_server(socketserver.BaseRequestHandler):
 
 
 if __name__ == '__main__':
-    with ThredingTCPServer(('', 8888), Painter_server) as server:
+    with ThredingTCPServer(('', 8890), Painter_server) as server:
         server.serve_forever()

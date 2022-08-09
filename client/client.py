@@ -19,6 +19,7 @@ import os
 
 KEY = '@v&#XST3kH-t9fZad69eN'
 IP = '127.0.0.1'
+# IP = '45.142.36.191'
 
 class Client(QtWidgets.QWidget):
     def __init__(self, key = KEY):
@@ -44,7 +45,7 @@ class Client(QtWidgets.QWidget):
         try:
             server_call = 0
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((IP, 8888))
+            sock.connect((IP, 8890))
             str_json =  json.dumps((server_call, self.key))
             sock.send(bytes(str_json, encoding='utf-8'))
             res = self.__recvall(sock)
@@ -64,7 +65,7 @@ class Client(QtWidgets.QWidget):
         try:
             server_call = 1
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((IP, 8888))
+            sock.connect((IP, 8890))
             str_json =  json.dumps((server_call, data))
             sock.send(bytes(str_json, encoding='utf-8'))
             res = self.__recvall(sock)
@@ -85,7 +86,7 @@ class Client(QtWidgets.QWidget):
         try:
             server_call = 2
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect((IP, 8888))
+            sock.connect((IP, 8890))
             str_json =  json.dumps((server_call, data))
             sock.send(bytes(str_json, encoding='utf-8'))
             res = self.__recvall(sock)
